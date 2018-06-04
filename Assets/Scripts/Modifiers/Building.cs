@@ -42,7 +42,6 @@ public class Building : MonoBehaviour {
 		return Mathf.Abs (volume);
 	}
 
-	// Use this for initialization
 	void Start () {
 		var mesh = GetComponent<MeshFilter> ().sharedMesh;
 		foreach (var vertex in mesh.vertices) {

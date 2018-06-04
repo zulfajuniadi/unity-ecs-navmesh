@@ -10,7 +10,6 @@ public class BuildNavMesh : MonoBehaviour {
 	AbstractMap map;
 	public bool IsBuilt = false;
 
-	// Use this for initialization
 	void Start () {
 		map = GetComponent<AbstractMap> ();
 		surface = GetComponent<NavMeshSurface> ();

@@ -16,7 +16,6 @@ namespace RTS_Cam {
         }
 
         public override void OnInspectorGUI () {
-            //base.OnInspectorGUI();
             Undo.RecordObject (camera, "RTSCamera");
             tabs.Draw ();
             if (GUI.changed)

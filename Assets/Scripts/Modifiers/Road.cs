@@ -6,7 +6,6 @@ using UnityEngine.AI;
 [RequireComponent (typeof (MeshCollider), typeof (NavMeshModifier))]
 public class Road : MonoBehaviour {
 
-	// Use this for initialization
 	void Start () {
 		gameObject.isStatic = true;
 		var modifierRoad = GameObject.Find ("Road").GetComponent<NavMeshModifier> ();

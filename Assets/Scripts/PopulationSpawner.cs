@@ -87,8 +87,6 @@ public class PopulationSpawner : MonoBehaviour {
 
         var home = ResidentialBuildings.Dequeue ();
         ResidentialBuildings.Enqueue (home);
-        // RemainingDistance.Add (entity.Index, 0);
-        // Target.Add (entity.Index, infinity);
 
         entityManager.SetComponentData (entity, new Person { id = entity.Index, entity = entity });
         entityManager.SetComponentData (entity, new Position { Value = home.Position });

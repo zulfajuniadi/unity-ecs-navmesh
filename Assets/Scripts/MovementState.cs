@@ -4,19 +4,6 @@ using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.AI;
 
-// states:
-// 0: no path
-// 1: calculating path
-// 2: moving
-// 3: waiting
-
-// public struct MovementState : IComponentData {
-//     public int State;
-//     public MovementState (int state = 0) {
-//         State = state;
-//     }
-// }
-
 public struct Person : IComponentData {
     public int id;
     public Entity entity;
@@ -42,7 +29,3 @@ public struct CurrentWaypointData : IComponentData {
     public float RemainingDistance;
     public int RemainingWaypoints;
 }
-
-// public struct WayPointData : ISharedComponentData {
-//     public NativeQueue<Vector3> Paths;
-// }
