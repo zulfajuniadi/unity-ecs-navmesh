@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using Unity.Entities;
 using UnityEngine;
 using UnityEngine.AI;
 
@@ -8,16 +9,17 @@ public enum BuildingType {
 	Commercial,
 }
 
-[RequireComponent (typeof (MeshCollider), typeof (BuildingData), typeof (NavMeshModifier))]
+[RequireComponent (typeof (MeshCollider), typeof (NavMeshModifier), typeof (GameObjectEntity))]
 public class Building : MonoBehaviour {
 
-	float minX = -38.61511f - 50f;
-	float maxX = -38.61511f + 50f;
-	float minZ = -17.09686f - 50f;
-	float maxZ = -17.09686f + 50f;
+	float minX = -33.61511f - 50f;
+	float maxX = -43.61511f + 50f;
+	float minZ = -12.09686f - 50f;
+	float maxZ = -22.09686f + 50f;
 
-	Vector3 center;
-	float volume;
+	public Vector3 Position;
+	public float Volume;
+	public BuildingType Type;
 
 	public float SignedVolumeOfTriangle (Vector3 p1, Vector3 p2, Vector3 p3) {
 		float v321 = p3.x * p2.y * p1.z;
@@ -45,39 +47,38 @@ public class Building : MonoBehaviour {
 	void Start () {
 		var mesh = GetComponent<MeshFilter> ().sharedMesh;
 		foreach (var vertex in mesh.vertices) {
-			center.x += vertex.x;
-			center.z += vertex.z;
+			Position.x += vertex.x;
+			Position.z += vertex.z;
 		}
-		center.x /= mesh.vertexCount;
-		center.z /= mesh.vertexCount;
-		center = transform.TransformPoint (center);
-		if (center.x < minX || center.x > maxX || center.z < minZ || center.z > maxZ) {
+		Position.x /= mesh.vertexCount;
+		Position.z /= mesh.vertexCount;
+		Position = transform.TransformPoint (Position);
+		if (Position.x < minX || Position.x > maxX || Position.z < minZ || Position.z > maxZ) {
 			gameObject.SetActive (false);
 			return;
 		}
 		gameObject.isStatic = true;
-		volume = VolumeOfMesh (mesh);
-
-		var data = gameObject.GetComponent<BuildingData> ();
-		data.Volume = volume;
-		data.Position = center;
+		Volume = VolumeOfMesh (mesh);
 
 		var modifierBuilding = GameObject.Find ("Building").GetComponent<NavMeshModifier> ();
 		var modifier = gameObject.GetComponent<NavMeshModifier> ();
 		modifier.overrideArea = modifierBuilding.overrideArea;
 		modifier.area = modifierBuilding.area;
 
-		if (volume > 0.25) {
-			data.Type = BuildingType.Commercial;
-			GameObject.FindObjectOfType<PopulationSpawner> ().CommercialBuildings.Enqueue (data);
+		if (Volume > 0.25) {
+			Type = BuildingType.Commercial;
 		} else {
-			data.Type = BuildingType.Residential;
-			GameObject.FindObjectOfType<PopulationSpawner> ().ResidentialBuildings.Enqueue (data);
+			Type = BuildingType.Residential;
 		}
+
+		var entity = GetComponent<GameObjectEntity> ().Entity;
+		var manager = GetComponent<GameObjectEntity> ().EntityManager;
+		manager.AddComponent (entity, typeof (BuildingData));
+		manager.SetComponentData (entity, new BuildingData () { Entity = entity, Type = Type, Position = Position });
 	}
 
 	private void OnDrawGizmos () {
 		Gizmos.color = Color.red;
-		Gizmos.DrawCube (center, Vector3.one);
+		Gizmos.DrawCube (Position, Vector3.one);
 	}
 }

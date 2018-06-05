@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using Unity.Entities;
 using UnityEngine;
 using UnityEngine.AI;
 
@@ -7,10 +8,10 @@ using UnityEngine.AI;
 public class Road : MonoBehaviour {
 
 	void Start () {
-		gameObject.isStatic = true;
-		var modifierRoad = GameObject.Find ("Road").GetComponent<NavMeshModifier> ();
-		var modifier = gameObject.GetComponent<NavMeshModifier> ();
-		modifier.overrideArea = modifierRoad.overrideArea;
-		modifier.area = modifierRoad.area;
+		// 	gameObject.isStatic = true;
+		// 	var modifierRoad = GameObject.Find ("Road").GetComponent<NavMeshModifier> ();
+		// 	var modifier = gameObject.GetComponent<NavMeshModifier> ();
+		// 	modifier.overrideArea = modifierRoad.overrideArea;
+		// 	modifier.area = modifierRoad.area;
 	}
 }

@@ -6,17 +6,17 @@ NavMeshProjectSettings:
   serializedVersion: 2
   areas:
   - name: Walkable
-    cost: 100
+    cost: 10
   - name: Not Walkable
     cost: 1
   - name: Jump
     cost: 2
   - name: Road
-    cost: 100000
+    cost: 1
   - name: Sidewalk
     cost: 1
   - name: Buildings
-    cost: 1000
+    cost: 50
   - name: 
     cost: 1
   - name: 
