@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using Unity.Collections;
 using Unity.Entities;
@@ -6,96 +7,69 @@ using Unity.Mathematics;
 using Unity.Transforms;
 using UnityEngine;
 using UnityEngine.AI;
+using UnityEngine.UI;
+
+public struct NavCalculationData {
+    public Entity entity;
+    public float3 from;
+    public float3 to;
+    public int key;
+}
 
 public class NavMeshSystem : ComponentSystem {
 
-    int maxBatch = 15;
+    Text awaitingText;
+    Text AwaitingText {
+        get {
+            if (awaitingText == null) {
+                awaitingText = GameObject.Find ("AwaitingNavmeshText").GetComponent<Text> ();
+            }
+            return awaitingText;
+        }
+    }
+
+    int maxFlushBatch = 20;
+    int maxFlushSystem = 50;
     int id;
-    float4 key;
+    int awaiting = 0;
+    float nextUpdate;
+
     NavMeshPath path = new NavMeshPath ();
 
-    float4 GetKey (float3 from, float3 to) {
-        return new float4 (
-            Mathf.Round (from.x),
-            Mathf.Round (from.z),
-            Mathf.Round (to.x),
-            Mathf.Round (to.z)
-        );
-    }
-    struct Data {
-        public int Length;
-        public EntityArray Entities;
-        public ComponentDataArray<WaypointStatus> Status;
-        public ComponentDataArray<MoveSpeed> MoveSpeeds;
-        [ReadOnly] public ComponentDataArray<Position> Positions;
+    int width = 100;
+    int height = 100;
+    int depth = 100;
+
+    public int GetKey (float3 from, float3 to) {
+        return Mathf.RoundToInt (from.x) + Mathf.RoundToInt (from.z) * width + Mathf.RoundToInt (to.x) * height * width + Mathf.RoundToInt (to.x) * height * width * depth;
     }
 
-    [Inject, ReadOnly] private BuildingCacheSystem buildingCache;
-    [Inject, ReadOnly] private WaypointCacheSystem waypointCache;
-    [Inject, ReadOnly] private SpawnSystem spawn;
-    [Inject] private Data data;
+    public Queue<NavCalculationData> PendingCalculations = new Queue<NavCalculationData> ();
 
-    bool allocated = false;
-    NativeList<int> indexes;
-    NativeList<float4> keys;
-    NativeList<Entity> queued;
-    NativeList<Vector3> from;
-    NativeList<Vector3> to;
-    List<Waypoint> results = new List<Waypoint> ();
-
-    [ComputeJobOptimization]
-    protected override void OnUpdate () {
-        if (spawn.pendingSpawn > 0) return;
-        int i = 0;
-        int batchSize = data.Length;
-        batchSize = math.min (maxBatch, data.Length);
-        allocated = false;
-        for (int index = 0; index < data.Length; ++index) {
-            var status = data.Status[index];
-            if (status.StateFlag != 0) continue;
-            Vector3 buildingData = buildingCache.GetCommercialBuilding ();
-            Entity entity = data.Entities[index];
-            id = entity.Index;
-            key = GetKey (data.Positions[index].Value, buildingData);
-            Waypoint waypoints;
-            if (waypointCache.Waypoints.TryGetValue (key, out waypoints)) {
-                status.StateFlag = 1;
-                status.NextWaypointIndex = 0;
-                status.TotalWaypoints = waypoints.Data.Length;
-                data.Status[index] = status;
-                PostUpdateCommands.SetSharedComponent<Waypoint> (entity, waypoints);
-            } else {
-                if (!allocated) {
-                    results.Clear ();
-                    allocated = true;
-                    indexes = new NativeList<int> (Allocator.Temp);
-                    keys = new NativeList<float4> (Allocator.Temp);
-                    queued = new NativeList<Entity> (Allocator.Temp);
-                    from = new NativeList<Vector3> (Allocator.Temp);
-                    to = new NativeList<Vector3> (Allocator.Temp);
-                }
-                indexes.Add (index);
-                keys.Add (key);
-                queued.Add (data.Entities[index]);
-                from.Add (data.Positions[index].Value);
-                to.Add (buildingData);
-                i++;
-                if (i == batchSize) break;
+    EntityManager _manager;
+    EntityManager manager {
+        get {
+            if (_manager == null) {
+                _manager = World.Active.GetOrCreateManager<EntityManager> ();
             }
+            return _manager;
         }
+    }
 
-        if (allocated) {
-            for (int k = 0; k < queued.Length; k++) {
-                Waypoint waypoints;
-                if (waypointCache.Waypoints.TryGetValue (keys[k], out waypoints)) {
-                    var st = data.Status[indexes[k]];
-                    st.StateFlag = 1;
-                    st.NextWaypointIndex = 0;
-                    st.TotalWaypoints = waypoints.Data.Length;
-                    PostUpdateCommands.SetSharedComponent<Waypoint> (queued[k], waypoints);
-                } else {
+    IEnumerator FlushQueue () {
+        while (true) {
+            if (Time.time > nextUpdate) {
+                nextUpdate = Time.time + 0.5f;
+                AwaitingText.text = string.Format ("Awaiting Path: {0} people", awaiting + PendingCalculations.Count);
+            }
+            int i = 0;
+            int j = 0;
+            while (PendingCalculations.Count > 0) {
+                var data = PendingCalculations.Dequeue ();
+                if (NeedsNavMeshCalculation (data.key, data.entity)) {
+                    Waypoint waypoints;
                     var path = new NavMeshPath ();
-                    NavMesh.CalculatePath (from[k], to[k], NavMesh.AllAreas, path);
+                    NavMesh.CalculatePath (data.from, data.to, NavMesh.AllAreas, path);
                     var list = new NativeList<Vector3> (Allocator.Persistent);
                     foreach (var pos in path.corners) {
                         list.Add (pos);
@@ -103,23 +77,94 @@ public class NavMeshSystem : ComponentSystem {
                     waypoints = new Waypoint () {
                         Data = list
                     };
-                    waypointCache.Waypoints.Add (keys[k], waypoints);
-                    results.Add (waypoints);
+                    waypointCache.Waypoints.Add (data.key, waypoints);
+                    setWaypoint (waypoints, data.entity);
+                    i++;
+                    if (i > maxFlushBatch) break;
+                } else {
+                    j++;
+                    if (j > maxFlushSystem) break;
                 }
             }
-            for (int j = 0; j < queued.Length; j++) {
-                var st = data.Status[indexes[j]];
-                st.StateFlag = 1;
-                st.NextWaypointIndex = 0;
-                st.TotalWaypoints = results[j].Data.Length;
-                data.Status[indexes[j]] = st;
-                PostUpdateCommands.SetSharedComponent<Waypoint> (queued[j], results[j]);
-            }
-            indexes.Dispose ();
-            keys.Dispose ();
-            queued.Dispose ();
-            from.Dispose ();
-            to.Dispose ();
+            yield return new WaitForEndOfFrame ();
         }
     }
+
+    static void Enqueue (NavCalculationData data) {
+        instance.PendingCalculations.Enqueue (data);
+    }
+
+    private bool NeedsNavMeshCalculation (int key, Entity entity, bool usePost = false) {
+        Waypoint waypoints;
+        if (waypointCache.Waypoints.TryGetValue (key, out waypoints)) {
+            setWaypoint (waypoints, entity, usePost);
+            return false;
+        }
+        return true;
+    }
+
+    private void setWaypoint (Waypoint waypoints, Entity entity, bool usePost = false) {
+        var status = manager.GetComponentData<WaypointStatus> (entity);
+        status.NextWaypointIndex = 0;
+        status.TotalWaypoints = waypoints.Data.Length;
+        status.WaitTime = Random.Range (15f, 60f);
+        if (!usePost) {
+            manager.AddComponent (entity, typeof (NeedsWaypointTag));
+            manager.SetComponentData<WaypointStatus> (entity, status);
+            manager.SetSharedComponentData<Waypoint> (entity, waypoints);
+            if (manager.HasComponent<IsPathFindingTag> (entity)) {
+                manager.RemoveComponent<IsPathFindingTag> (entity);
+            }
+        } else {
+            PostUpdateCommands.AddComponent<NeedsWaypointTag> (entity, new NeedsWaypointTag ());
+            PostUpdateCommands.SetComponent<WaypointStatus> (entity, status);
+            PostUpdateCommands.SetSharedComponent<Waypoint> (entity, waypoints);
+            PostUpdateCommands.RemoveComponent<IsPathFindingTag> (entity);
+        }
+    }
+
+    static NavMeshSystem instance;
+
+    protected override void OnCreateManager (int i) {
+        instance = this;
+        GameObject.FindObjectOfType<PopulationSpawner> ().StartCoroutine (FlushQueue ());
+    }
+
+    struct Data {
+        public int Length;
+        [ReadOnly] public EntityArray Entities;
+        public ComponentDataArray<WaypointStatus> Status;
+        public ComponentDataArray<NeedsPathTag> Tag;
+        [ReadOnly] public ComponentDataArray<Position> Positions;
+    }
+
+    [Inject] private BuildingCacheSystem buildingCache;
+    [Inject] private WaypointCacheSystem waypointCache;
+    [Inject] private SpawnSystem spawn;
+    [Inject] private Data data;
+
+    protected override void OnUpdate () {
+        awaiting = data.Length;
+        if (spawn.pendingSpawn > 0) return;
+        int i = 0;
+        for (int index = 0; index < data.Length; ++index) {
+            // try {
+            Entity entity = data.Entities[index];
+            var to = buildingCache.GetCommercialBuilding ();
+            var key = GetKey (data.Positions[index].Value, to);
+            PostUpdateCommands.AddComponent<IsPathFindingTag> (entity, new IsPathFindingTag ());
+            PostUpdateCommands.RemoveComponent<NeedsPathTag> (entity);
+            if (NeedsNavMeshCalculation (key, entity, true)) {
+                i++;
+                if (i > maxFlushSystem) break;
+                Enqueue (new NavCalculationData { from = data.Positions[index].Value, entity = entity, to = to, key = key });
+            }
+            // } catch { break; }
+        }
+    }
+
+    protected override void OnStopRunning () {
+        awaiting = 0;
+    }
+
 }

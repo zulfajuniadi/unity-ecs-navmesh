@@ -16,25 +16,19 @@ public struct Person : IComponentData {
     public Entity entity;
 }
 
-public struct IsPendingNavMeshQuery : IComponentData { }
-
-public struct IsNotPendingNavMeshQuery : IComponentData { }
+public struct NeedsPathTag : IComponentData { } // => NavMeshSystem
+public struct IsPathFindingTag : IComponentData { } // => NavMeshSystem
+public struct IsChillingTag : IComponentData { } // => WaypointSystem
+public struct IsMovingTag : IComponentData { } // => MovementSystem
+public struct NeedsWaypointTag : IComponentData { } // => MovementSystem
 
 public struct WaypointStatus : IComponentData {
-    // flags:
-    // 0: pending navmesh
-    // 1: pending waypoint
-    // 2: set heading
-    // 3: set distance
-    // 4: moving
-    // 5: waiting
-    public int StateFlag;
-
     public float WaitTime;
     public float RemainingDistance;
     public float3 NextWaypoint;
     public int NextWaypointIndex;
     public int TotalWaypoints;
+    public Matrix4x4 Matrix;
 }
 
 public struct Waypoint : ISharedComponentData {

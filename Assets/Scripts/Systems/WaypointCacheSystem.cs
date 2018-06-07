@@ -7,7 +7,7 @@ using UnityEngine.UI;
 
 public class WaypointCacheSystem : ComponentSystem {
 
-    public Dictionary<float4, Waypoint> Waypoints = new Dictionary<float4, Waypoint> ();
+    public Dictionary<int, Waypoint> Waypoints = new Dictionary<int, Waypoint> ();
 
     Text waypointCountText;
     Text WaypointCountText {

@@ -12,7 +12,7 @@ using UnityEngine.UI;
 
 public class PopulationSpawner : MonoBehaviour {
 
-    public MeshInstanceRendererComponent[] Renderers = new MeshInstanceRendererComponent[0];
+    public MeshInstanceRendererComponent[] Renderers;
 
     public int InitialSpawn = 100;
 
@@ -21,6 +21,7 @@ public class PopulationSpawner : MonoBehaviour {
     Entity thisEntity;
 
     private void Start () {
+        Renderers = GameObject.FindObjectsOfType<MeshInstanceRendererComponent> ();
         entityManager = World.Active.GetOrCreateManager<EntityManager> ();
         thisEntity = GetComponent<GameObjectEntity> ().Entity;
         entityManager.AddComponent (thisEntity, typeof (PendingSpawn));

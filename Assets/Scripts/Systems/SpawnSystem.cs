@@ -1,6 +1,7 @@
 using Unity.Collections;
 using Unity.Entities;
 using Unity.Mathematics;
+using Unity.Rendering;
 using Unity.Transforms;
 using UnityEngine;
 using UnityEngine.UI;
@@ -51,13 +52,10 @@ public class SpawnSystem : ComponentSystem {
         base.OnCreateManager (i);
         dummy = new Waypoint () { Data = new NativeList<Vector3> (Allocator.Persistent) };
         pendingArchetype = manager.CreateArchetype (
-            typeof (Person),
             typeof (Position),
-            typeof (Heading),
-            typeof (TransformMatrix),
-            typeof (MoveSpeed),
-            typeof (MoveForward),
-            typeof (WaypointStatus)
+            typeof (Rotation),
+            typeof (WaypointStatus),
+            typeof (NeedsPathTag)
         );
     }
 
@@ -70,6 +68,8 @@ public class SpawnSystem : ComponentSystem {
     [Inject] BuildingCacheSystem buidlings;
     [Inject] SpawnBarrier barrier;
 
+    Vector3 one = Vector3.one;
+
     protected override void OnUpdate () {
         if (Time.time > nextUpdate && lastSpawned != spawned) {
             nextUpdate = Time.time + 0.5f;
@@ -78,6 +78,7 @@ public class SpawnSystem : ComponentSystem {
         }
         var spawnData = data.Spawn[0];
         pendingSpawn = spawnData.Quantity;
+        if (spawner.Renderers.Length == 0) return;
         if (spawnData.Quantity == 0) return;
         if (buidlings.ResidentialBuildings.Count == 0) return;
         var quantity = spawnData.Quantity > 50 ? 50 : spawnData.Quantity;
@@ -86,13 +87,12 @@ public class SpawnSystem : ComponentSystem {
         var command = barrier.CreateCommandBuffer ();
         for (int i = 0; i < quantity; i++) {
             spawned++;
+            var pos = buidlings.GetResidentialBuilding ();
+            var matrix = Matrix4x4.TRS (pos, Quaternion.identity, one);
             command.CreateEntity (pendingArchetype);
-            var direction = new float3 (Random.Range (-1f, 1f), 0, Random.Range (-1f, 1f));
-            command.SetComponent (new Position { Value = buidlings.GetResidentialBuilding () });
-            command.SetComponent (new Heading { Value = direction });
-            command.SetComponent (new MoveSpeed { speed = 0 });
-            command.SetComponent (new WaypointStatus ());
-            command.AddComponent (new IsPendingNavMeshQuery ());
+            command.SetComponent (new Position { Value = pos });
+            command.SetComponent (new Rotation { Value = Quaternion.identity });
+            command.SetComponent (new WaypointStatus { Matrix = matrix });
             command.AddSharedComponent (dummy);
             command.AddSharedComponent (spawner.Renderers[Random.Range (0, spawner.Renderers.Length)].Value);
         }
