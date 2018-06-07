@@ -8,7 +8,8 @@ using UnityEngine.AI;
 public class Road : MonoBehaviour {
 
 	void Start () {
-		// 	gameObject.isStatic = true;
+		gameObject.isStatic = true;
+		gameObject.layer = 10;
 		// 	var modifierRoad = GameObject.Find ("Road").GetComponent<NavMeshModifier> ();
 		// 	var modifier = gameObject.GetComponent<NavMeshModifier> ();
 		// 	modifier.overrideArea = modifierRoad.overrideArea;

@@ -11,5 +11,6 @@ public class Sidewalk : MonoBehaviour {
 		var modifier = gameObject.GetComponent<NavMeshModifier> ();
 		modifier.overrideArea = modifierSidewalk.overrideArea;
 		modifier.area = modifierSidewalk.area;
+		gameObject.layer = 10;
 	}
 }

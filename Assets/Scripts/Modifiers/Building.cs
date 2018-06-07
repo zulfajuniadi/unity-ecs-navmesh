@@ -75,6 +75,7 @@ public class Building : MonoBehaviour {
 		var manager = GetComponent<GameObjectEntity> ().EntityManager;
 		manager.AddComponent (entity, typeof (BuildingData));
 		manager.SetComponentData (entity, new BuildingData () { Entity = entity, Type = Type, Position = Position });
+		gameObject.layer = 9;
 	}
 
 	private void OnDrawGizmos () {
