@@ -35,3 +35,4 @@ sysinfo.txt
 *.apk
 *.unitypackage
 .DS_Store
+unity-ecs-navmesh-mapbox.code-workspace
