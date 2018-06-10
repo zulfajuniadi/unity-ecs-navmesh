@@ -1,18 +1,19 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using Unity.Entities;
+﻿#region
+
 using UnityEngine;
 using UnityEngine.AI;
 
-[RequireComponent (typeof (MeshCollider), typeof (NavMeshModifier))]
-public class Road : MonoBehaviour {
+#endregion
 
-	void Start () {
-		gameObject.isStatic = true;
-		gameObject.layer = 10;
-		// 	var modifierRoad = GameObject.Find ("Road").GetComponent<NavMeshModifier> ();
-		// 	var modifier = gameObject.GetComponent<NavMeshModifier> ();
-		// 	modifier.overrideArea = modifierRoad.overrideArea;
-		// 	modifier.area = modifierRoad.area;
-	}
+namespace Modifiers
+{
+    [RequireComponent (typeof (MeshCollider), typeof (NavMeshModifier))]
+    public class Road : MonoBehaviour
+    {
+        private void Start ()
+        {
+            gameObject.isStatic = true;
+            gameObject.layer = 10;
+        }
+    }
 }

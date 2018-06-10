@@ -1,42 +1,55 @@
+#region
+
 using System.Collections.Generic;
-using Unity.Collections;
 using Unity.Entities;
-using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class WaypointCacheSystem : ComponentSystem {
+#endregion
 
-    public Dictionary<int, Waypoint> Waypoints = new Dictionary<int, Waypoint> ();
+namespace Systems
+{
+    public class WaypointCacheSystem : ComponentSystem
+    {
+        public Dictionary<int, Vector3[]> CurrentWaypoints = new Dictionary<int, Vector3[]> ();
+        public Dictionary<int, Vector3[]> Waypoints = new Dictionary<int, Vector3[]> ();
 
-    Text waypointCountText;
-    Text WaypointCountText {
-        get {
-            if (waypointCountText == null) {
-                waypointCountText = GameObject.Find ("WaypointCountText").GetComponent<Text> ();
+        private int lastCount;
+        private float nextUpdate;
+        private Text waypointCountText;
+        private static WaypointCacheSystem instance;
+
+        private Text WaypointCountText
+        {
+            get
+            {
+                if (waypointCountText == null)
+                {
+                    waypointCountText = GameObject.Find ("WaypointCountText").GetComponent<Text> ();
+                }
+
+                return waypointCountText;
             }
-            return waypointCountText;
         }
-    }
 
-    protected override void OnDestroyManager () {
-        foreach (var entry in Waypoints) {
-            entry.Value.Data.Dispose ();
+        public static Dictionary<int, Vector3[]> EntityWaypoints
+        {
+            get => instance.CurrentWaypoints;
         }
-    }
 
-    struct InjectData {
-        ComponentDataArray<PendingSpawn> dummy;
-    }
+        protected override void OnCreateManager (int capacity)
+        {
+            instance = this;
+        }
 
-    int lastCount;
-    float nextUpdate;
-
-    protected override void OnUpdate () {
-        if (Time.time > nextUpdate && lastCount != Waypoints.Count) {
-            nextUpdate = Time.time + 0.5f;
-            lastCount = Waypoints.Count;
-            WaypointCountText.text = string.Format ("Cached Paths: {0}", lastCount);
+        protected override void OnUpdate ()
+        {
+            if (Time.time > nextUpdate && lastCount != Waypoints.Count)
+            {
+                nextUpdate = Time.time + 0.5f;
+                lastCount = Waypoints.Count;
+                WaypointCountText.text = string.Format ("Cached Paths: {0}", lastCount);
+            }
         }
     }
 }
