@@ -24,7 +24,7 @@ namespace Systems
 
         [Inject] private BuildingCacheSystem _buildings;
         [Inject] private InjectData data;
-        [Inject] private NavSystem navSystem;
+        [Inject] private WaypointProviderSystem waypointProvider;
 
         private int spawned;
 
@@ -43,36 +43,30 @@ namespace Systems
             }
         }
 
-        private PopulationSpawner spawner
+        private PopulationSpawner Getspawner ()
         {
-            get
+            if (_spawner == null)
             {
-                if (_spawner == null)
-                {
-                    _spawner = Object.FindObjectOfType<PopulationSpawner> ();
-                }
-
-                return _spawner;
+                _spawner = Object.FindObjectOfType<PopulationSpawner> ();
             }
+
+            return _spawner;
         }
 
-        private EntityManager manager
+        private EntityManager Getmanager ()
         {
-            get
+            if (_manager == null)
             {
-                if (_manager == null)
-                {
-                    _manager = World.Active.GetOrCreateManager<EntityManager> ();
-                }
-
-                return _manager;
+                _manager = World.Active.GetOrCreateManager<EntityManager> ();
             }
+
+            return _manager;
         }
 
-        protected override void OnCreateManager (int i)
+        protected override void OnCreateManager (int capacity)
         {
-            base.OnCreateManager (i);
-            _agent = manager.CreateArchetype (
+            base.OnCreateManager (capacity);
+            _agent = Getmanager ().CreateArchetype (
                 typeof (NavAgent)
             );
         }
@@ -86,7 +80,7 @@ namespace Systems
                 SpawnedText.text = $"Spawned: {spawned} people";
             }
 
-            if (spawner.Renderers.Length == 0)
+            if (Getspawner ().Renderers.Length == 0)
             {
                 return;
             }
@@ -105,18 +99,18 @@ namespace Systems
                 spawned++;
                 var pos = _buildings.GetResidentialBuilding ();
                 var matrix = Matrix4x4.TRS (pos, Quaternion.identity, one);
-                var entity = manager.CreateEntity (this._agent);
+                var entity = Getmanager ().CreateEntity (_agent);
                 var agent = new NavAgent
                 {
                     EntityIndex = entity.Index,
                     Matrix = matrix,
                     Position = pos,
                     Rotation = Quaternion.identity,
-                    WaitTime = 60f
+                    WaitTime = 5f
                 };
-                manager.SetComponentData (entity, agent);
-                manager.AddSharedComponentData (entity, spawner.Renderers[Random.Range (0, spawner.Renderers.Length)].Value);
-                navSystem.GetWaypoint (entity, agent);
+                Getmanager ().SetComponentData (entity, agent);
+                Getmanager ().AddSharedComponentData (entity, Getspawner ().Renderers[Random.Range (0, Getspawner ().Renderers.Length)].Value);
+                waypointProvider.GetWaypoint (entity, agent);
             }
         }
 

@@ -13,14 +13,15 @@ namespace Systems
 {
     public class BuildingCacheSystem : ComponentSystem
     {
-        private PopulationSpawner _spawner;
         public NativeList<Vector3> CommercialBuildings = new NativeList<Vector3> (Allocator.Persistent);
         public NativeList<Vector3> ResidentialBuildings = new NativeList<Vector3> (Allocator.Persistent);
-        private int _nextCommercial = -1;
-        private int _nextResidential = -1;
-        [Inject] private InjectBuildings data;
+        private PopulationSpawner spawner;
+        private int nextCommercial = 0;
+        private int nextResidential = 0;
 
-        private struct InjectBuildings
+        [Inject] private InjectData data;
+
+        private struct InjectData
         {
             public int Length;
             [ReadOnly] public ComponentDataArray<BuildingData> Buildings;
@@ -30,35 +31,46 @@ namespace Systems
         {
             get
             {
-                if (_spawner == null)
+                if (spawner == null)
                 {
-                    _spawner = Object.FindObjectOfType<PopulationSpawner> ();
+                    spawner = Object.FindObjectOfType<PopulationSpawner> ();
                 }
 
-                return _spawner;
+                return spawner;
             }
         }
 
         public Vector3 GetResidentialBuilding ()
         {
-            _nextResidential++;
-            if (_nextResidential >= ResidentialBuildings.Length)
+            nextResidential++;
+            if (nextResidential >= ResidentialBuildings.Length)
             {
-                _nextResidential = 0;
+                nextResidential = 0;
             }
 
-            return ResidentialBuildings[_nextResidential];
+            return ResidentialBuildings[nextResidential];
         }
 
         public Vector3 GetCommercialBuilding ()
         {
-            _nextCommercial++;
-            if (_nextCommercial >= CommercialBuildings.Length)
+            var building = CommercialBuildings[0];
+            try
             {
-                _nextCommercial = 0;
+                if (nextCommercial < CommercialBuildings.Length)
+                {
+                    building = CommercialBuildings[nextCommercial];
+                    nextCommercial++;
+                }
+                else
+                {
+                    nextCommercial = 0;
+                }
+                return building;
             }
-
-            return CommercialBuildings[_nextCommercial];
+            catch
+            {
+                return building;
+            }
         }
 
         protected override void OnUpdate ()

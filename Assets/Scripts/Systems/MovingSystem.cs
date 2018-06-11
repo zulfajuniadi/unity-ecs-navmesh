@@ -1,6 +1,7 @@
 #region
 
 using Components;
+using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
 using Unity.Jobs;
@@ -13,50 +14,88 @@ namespace Systems
 {
     public class MovementSystem : JobComponentSystem
     {
+        NativeQueue<NeedsUpdate> needsPath = new NativeQueue<NeedsUpdate> (Allocator.Persistent);
+        NativeQueue<NeedsUpdate> needsWaypoint = new NativeQueue<NeedsUpdate> (Allocator.Persistent);
 
+        public struct NeedsUpdate
+        {
+            public int index;
+            public Entity entity;
+            public NavAgent agent;
+        }
+
+        [BurstCompile]
         private struct DetectNextWaypointJob : IJobParallelFor
         {
-            private InjectData _data;
-
-            public DetectNextWaypointJob (InjectData data)
-            {
-                this._data = data;
-            }
+            public InjectData data;
+            public NativeQueue<NeedsUpdate>.Concurrent needsWaypoint;
+            public NativeQueue<NeedsUpdate>.Concurrent needsPath;
 
             public void Execute (int index)
             {
-                var agent = _data.Statuses[index];
-                if (agent.TotalWaypoints == 0)
+                var status = data.Statuses[index];
+                if (status.TotalWaypoints == 0 || status.RemainingDistance > 0)
                 {
                     return;
                 }
 
-                if (agent.RemainingDistance > 0)
+                var entity = data.Entities[index];
+                if (status.NextWaypointIndex != status.TotalWaypoints)
                 {
-                    return;
-                }
-
-                var entity = _data.Entities[index];
-                if (agent.NextWaypointIndex != agent.TotalWaypoints)
-                {
-                    try
+                    needsWaypoint.Enqueue (new NeedsUpdate
                     {
-                        agent.NextWaypoint = WaypointCacheSystem.EntityWaypoints[entity.Index][agent.NextWaypointIndex];
-                    }
-                    catch { }
+                        agent = data.Statuses[index],
+                            entity = data.Entities[index],
+                            index = index,
+                    });
                 }
-                else if (agent.WaitTime <= 0)
+                else if (status.WaitTime <= 0)
                 {
-                    agent.TotalWaypoints = 0;
-                    agent.WaitTime = 60f;
-                    NavSystem.GetNextWaypoint (entity, agent);
+                    needsPath.Enqueue (new NeedsUpdate
+                    {
+                        agent = data.Statuses[index],
+                            entity = data.Entities[index],
+                            index = index,
+                    });
                 }
-
-                _data.Statuses[index] = agent;
             }
         }
 
-        [ComputeJobOptimization]
+        public struct SetNextWaypointJob : IJob
+        {
+            public InjectData data;
+            public NativeQueue<NeedsUpdate> needsWaypoint;
+            public void Execute ()
+            {
+                while (needsWaypoint.TryDequeue (out NeedsUpdate item))
+                {
+                    var status = data.Statuses[item.index];
+                    var entity = data.Entities[item.index];
+                    status.NextWaypoint = WaypointProviderSystem.EntityWaypoints[entity.Index][status.NextWaypointIndex];
+                    data.Statuses[item.index] = status;
+                }
+            }
+        }
+
+        public struct SetNextPathJob : IJob
+        {
+            public InjectData data;
+            public NativeQueue<NeedsUpdate> needsPath;
+            public void Execute ()
+            {
+                while (needsPath.TryDequeue (out NeedsUpdate item))
+                {
+                    var status = data.Statuses[item.index];
+                    var entity = data.Entities[item.index];
+                    status.TotalWaypoints = 0;
+                    status.WaitTime = 5f;
+                    WaypointProviderSystem.GetNextWaypoint (entity, status);
+                    data.Statuses[item.index] = status;
+                }
+            }
+        }
+
+        [BurstCompile]
         private struct MovementJob : IJobParallelFor
         {
             private readonly float dt;
@@ -64,25 +103,25 @@ namespace Systems
             private readonly float3 up;
             private readonly float3 one;
 
-            private InjectData _data;
+            private InjectData data;
 
             public MovementJob (InjectData data, float dt, float speed)
             {
                 this.dt = dt;
                 this.speed = speed;
-                _data = data;
+                this.data = data;
                 up = Vector3.up;
                 one = Vector3.one;
             }
 
             public void Execute (int index)
             {
-                if (index >= _data.Statuses.Length)
+                if (index >= data.Statuses.Length)
                 {
                     return;
                 }
 
-                var status = _data.Statuses[index];
+                var status = data.Statuses[index];
                 if (status.TotalWaypoints == 0)
                 {
                     return;
@@ -90,15 +129,17 @@ namespace Systems
 
                 if (status.RemainingDistance > 0)
                 {
-                    status.RemainingDistance -= speed;
                     status.Position += math.forward (status.Rotation) * speed;
                     status.Matrix = Matrix4x4.TRS (status.Position, status.Rotation, one);
+                    status.RemainingDistance -= speed;
+                    data.Statuses[index] = status;
                 }
                 else if (status.NextWaypointIndex == status.TotalWaypoints)
                 {
                     if (status.WaitTime >= 0)
                     {
                         status.WaitTime -= dt;
+                        data.Statuses[index] = status;
                     }
                 }
                 else
@@ -112,18 +153,12 @@ namespace Systems
                     }
 
                     status.NextWaypointIndex++;
+                    data.Statuses[index] = status;
                 }
-
-                if (index >= _data.Statuses.Length)
-                {
-                    return;
-                }
-
-                _data.Statuses[index] = status;
             }
         }
 
-        private struct InjectData
+        public struct InjectData
         {
             public int Length;
             [ReadOnly] public EntityArray Entities;
@@ -132,20 +167,26 @@ namespace Systems
 
         [Inject] private InjectData data;
 
-        [ComputeJobOptimization]
-        protected override JobHandle OnUpdate (JobHandle deps)
+        protected override JobHandle OnUpdate (JobHandle inputDeps)
         {
             var dt = Time.deltaTime;
             var speed = dt * 2;
-
-            deps = new DetectNextWaypointJob (data).Schedule (data.Length, 64, deps);
-            deps = new MovementJob (
+            inputDeps = new DetectNextWaypointJob { data = data, needsPath = needsPath, needsWaypoint = needsWaypoint }.Schedule (data.Length, 64, inputDeps);
+            inputDeps = new SetNextWaypointJob { data = data, needsWaypoint = needsWaypoint }.Schedule (inputDeps);
+            inputDeps = new SetNextPathJob { data = data, needsPath = needsPath }.Schedule (inputDeps);
+            inputDeps = new MovementJob (
                 data,
                 dt,
                 speed
-            ).Schedule (data.Length, 64, deps);
+            ).Schedule (data.Length, 64, inputDeps);
 
-            return deps;
+            return inputDeps;
+        }
+
+        protected override void OnDestroyManager ()
+        {
+            needsPath.Dispose ();
+            needsWaypoint.Dispose ();
         }
     }
 }

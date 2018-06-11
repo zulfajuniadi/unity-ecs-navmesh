@@ -1,6 +1,7 @@
 using System.Collections;
 using Components;
 using Unity.Entities;
+using Unity.Mathematics;
 using Unity.Rendering;
 using UnityEngine;
 
@@ -19,12 +20,12 @@ namespace Behaviours
 
         private void Start ()
         {
-            Renderers = GameObject.FindObjectsOfType<MeshInstanceRendererComponent> ();
+            Renderers = FindObjectsOfType<MeshInstanceRendererComponent> ();
             entityManager = World.Active.GetOrCreateManager<EntityManager> ();
             thisEntity = GetComponent<GameObjectEntity> ().Entity;
             entityManager.AddComponent (thisEntity, typeof (PendingSpawn));
             entityManager.SetComponentData (thisEntity, new PendingSpawn () { Entity = thisEntity, Quantity = 0 });
-            buildNavMesh = GameObject.FindObjectOfType<BuildNavMesh> ();
+            buildNavMesh = FindObjectOfType<BuildNavMesh> ();
             StartCoroutine (DoInitialSpawn ());
         }
 

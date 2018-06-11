@@ -1,27 +1,28 @@
 using System;
 using Components;
+using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
 using Unity.Jobs;
 using Unity.Mathematics;
 using Unity.Rendering;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 namespace Systems
 {
     [ExecuteInEditMode]
     public class OptimizedMeshInstanceRendererSystem : ComponentSystem
     {
-        readonly Matrix4x4[] _matrices = new Matrix4x4[1023];
+        readonly Matrix4x4[] matrices = new Matrix4x4[1023];
 
         [Inject] InjectData data;
-        JobHandle[] handles = new JobHandle[0];
+        NativeArray<JobHandle> handles = new NativeArray<JobHandle> (0, Allocator.Persistent);
         RenderJob[] jobs = new RenderJob[0];
         Matrix4x4[] lastMatrices = new Matrix4x4[1023];
         NativeArray<Matrix4x4>[] arrays = new NativeArray<Matrix4x4>[0];
 
-        // draw mesh instanced
-        [ComputeJobOptimization]
+        [BurstCompile]
         protected override void OnUpdate ()
         {
             // 1.47ms @ 10000
@@ -31,19 +32,19 @@ namespace Systems
             var dataLength = data.Length;
             var remaining = data.Length;
 
-            if (arrays.Length != data.Length)
+            if (arrays.Length != jobLength)
             {
                 DestroyArrays ();
-                Array.Resize (ref arrays, data.Length);
-                Array.Resize (ref jobs, data.Length);
-                Array.Resize (ref handles, data.Length);
-                for (var i = 0; i < data.Length; i++)
+                Array.Resize (ref arrays, jobLength);
+                Array.Resize (ref jobs, jobLength);
+                handles = new NativeArray<JobHandle> (jobLength, Allocator.Persistent);
+                for (var i = 0; i < jobLength; i++)
                 {
                     arrays[i] = new NativeArray<Matrix4x4> (1023, Allocator.Persistent);
                 }
             }
 
-            for (var i = 0; i < data.Length; i += 1023)
+            for (var i = 0; i < dataLength; i += 1023)
             {
                 var currentIndex = i / 1023;
                 var length = math.min (1023, remaining);
@@ -60,17 +61,21 @@ namespace Systems
                 remaining -= length;
             }
 
-            for (var i = 0; i < jobLength; i++)
-            {
-                handles[i].Complete ();
-            }
+            JobHandle.CombineDependencies (handles).Complete ();
 
             for (var i = 0; i < jobLength; i++)
             {
-                arrays[i].CopyTo (_matrices);
-                Graphics.DrawMeshInstanced (renderer.mesh, renderer.subMesh, renderer.material, _matrices,
+                arrays[i].CopyTo (matrices);
+                Graphics.DrawMeshInstanced (
+                    renderer.mesh,
+                    renderer.subMesh,
+                    renderer.material,
+                    matrices,
                     jobs[i].Length,
-                    null, renderer.castShadows, renderer.receiveShadows);
+                    null,
+                    ShadowCastingMode.Off,
+                    false
+                );
             }
 
             // 1.87 ms @ 10000
@@ -100,13 +105,14 @@ namespace Systems
 
         void DestroyArrays ()
         {
+            handles.Dispose ();
             for (var i = 0; i < arrays.Length; i++)
             {
                 arrays[i].Dispose ();
             }
         }
 
-        [ComputeJobOptimization]
+        [BurstCompile]
         struct RenderJob : IJob
         {
             [ReadOnly] public ComponentDataArray<NavAgent> Statuses;
