@@ -30,9 +30,21 @@ namespace Systems
             }
         }
 
-        private int maxQueries = 64;
-        private int maxPathSize = 2048;
-        private int maxIterations = 128;
+        /// <summary>
+        /// How many navmesh queries are run on each update.
+        /// </summary>
+        public int MaxQueries = 64;
+
+        /// <summary>
+        /// Maximum path size of each query
+        /// </summary>
+        public int MaxPathSize = 2048;
+
+        /// <summary>
+        /// Maximum iteration on each update cycle
+        /// </summary>
+        public int MaxIterations = 128;
+
         private NavMeshWorld world;
         private NavMeshQuery locationQuery;
         private ConcurrentQueue<PathQueryData> QueryQueue;
@@ -58,35 +70,63 @@ namespace Systems
             public float3 to;
         }
 
-        public static void RegisterPathResolvedCallbackStatic (SuccessQueryDelegate callback)
-        {
-            instance.pathResolvedCallbacks += callback;
-        }
-
+        /// <summary>
+        /// Register a callback that is called upon successful request
+        /// </summary>
+        /// <param name="callback"></param>
         public void RegisterPathResolvedCallback (SuccessQueryDelegate callback)
         {
             pathResolvedCallbacks += callback;
         }
 
-        public static void RegisterPathFailedCallbackStatic (FailedQueryDelegate callback)
-        {
-            instance.pathFailedCallbacks += callback;
-        }
-
+        /// <summary>
+        /// Register a callback that is called upon failed request
+        /// </summary>
+        /// <param name="callback"></param>
         public void RegisterPathFailedCallback (FailedQueryDelegate callback)
         {
             pathFailedCallbacks += callback;
         }
 
-        public static void RequestPathStatic (int id, Vector3 from, Vector3 to)
-        {
-            instance.RequestPath (id, from, to);
-        }
-
+        /// <summary>
+        /// Request a path. The ID is for you to identify the path
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="from"></param>
+        /// <param name="to"></param>
         public void RequestPath (int id, Vector3 from, Vector3 to)
         {
             var data = new PathQueryData { id = id, from = from, to = to };
             QueryQueue.Enqueue (data);
+        }
+
+        /// <summary>
+        /// Static counterpart of RegisterPathResolvedCallback.
+        /// </summary>
+        /// <param name="callback"></param>
+        public static void RegisterPathResolvedCallbackStatic (SuccessQueryDelegate callback)
+        {
+            instance.pathResolvedCallbacks += callback;
+        }
+
+        /// <summary>
+        /// Static counterpart of RegisterPathFailedCallback
+        /// </summary>
+        /// <param name="callback"></param>
+        public static void RegisterPathFailedCallbackStatic (FailedQueryDelegate callback)
+        {
+            instance.pathFailedCallbacks += callback;
+        }
+
+        /// <summary>
+        /// Static counterpart of RequestPath
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="from"></param>
+        /// <param name="to"></param>
+        public static void RequestPathStatic (int id, Vector3 from, Vector3 to)
+        {
+            instance.RequestPath (id, from, to);
         }
 
         private struct UpdateQueryStatusJob : IJob
@@ -162,7 +202,7 @@ namespace Systems
         protected override JobHandle OnUpdate (JobHandle inputDeps)
         {
 
-            if (QueryQueue.Count == 0 && availableSlots.Count == maxQueries)
+            if (QueryQueue.Count == 0 && availableSlots.Count == MaxQueries)
             {
                 return inputDeps;
             }
@@ -175,7 +215,7 @@ namespace Systems
                 {
                     if (availableSlots.TryDequeue (out int index))
                     {
-                        var query = new NavMeshQuery (world, Allocator.Persistent, maxPathSize);
+                        var query = new NavMeshQuery (world, Allocator.Persistent, MaxPathSize);
                         var from = query.MapLocation (pending.from, Vector3.one * 10, 0);
                         var to = query.MapLocation (pending.to, Vector3.one * 10, 0);
                         if (!query.IsValid (from) || !query.IsValid (to))
@@ -204,7 +244,7 @@ namespace Systems
                         QueryQueue.Enqueue (pending);
                     }
                 }
-                if (j > maxQueries)
+                if (j > MaxQueries)
                 {
                     Debug.LogError ("Infinite loop detected");
                     break;
@@ -216,8 +256,8 @@ namespace Systems
                 int index = takenSlots[i];
                 var job = new UpdateQueryStatusJob ()
                 {
-                    maxIterations = maxIterations,
-                    maxPathSize = maxPathSize,
+                    maxIterations = MaxIterations,
+                    maxPathSize = MaxPathSize,
                     data = queryDatas[index],
                     statuses = statuses[index],
                     query = queries[index],
@@ -261,20 +301,20 @@ namespace Systems
         {
             world = NavMeshWorld.GetDefaultWorld ();
             locationQuery = new NavMeshQuery (world, Allocator.Persistent);
-            ProgressQueue = new NativeList<PathQueryData> (maxQueries, Allocator.Persistent);
+            ProgressQueue = new NativeList<PathQueryData> (MaxQueries, Allocator.Persistent);
             availableSlots = new ConcurrentQueue<int> ();
-            handles = new List<JobHandle> (maxQueries);
-            takenSlots = new List<int> (maxQueries);
-            statuses = new List<NativeArray<int>> (maxQueries);
-            results = new List<NativeArray<NavMeshLocation>> (maxQueries);
-            jobs = new Dictionary<int, UpdateQueryStatusJob> (maxQueries);
-            queries = new NavMeshQuery[maxQueries];
-            queryDatas = new PathQueryData[maxQueries];
-            for (int i = 0; i < maxQueries; i++)
+            handles = new List<JobHandle> (MaxQueries);
+            takenSlots = new List<int> (MaxQueries);
+            statuses = new List<NativeArray<int>> (MaxQueries);
+            results = new List<NativeArray<NavMeshLocation>> (MaxQueries);
+            jobs = new Dictionary<int, UpdateQueryStatusJob> (MaxQueries);
+            queries = new NavMeshQuery[MaxQueries];
+            queryDatas = new PathQueryData[MaxQueries];
+            for (int i = 0; i < MaxQueries; i++)
             {
                 handles.Add (new JobHandle ());
                 statuses.Add (new NativeArray<int> (3, Allocator.Persistent));
-                results.Add (new NativeArray<NavMeshLocation> (maxPathSize, Allocator.Persistent));
+                results.Add (new NativeArray<NavMeshLocation> (MaxPathSize, Allocator.Persistent));
                 availableSlots.Enqueue (i);
             }
             QueryQueue = new ConcurrentQueue<PathQueryData> ();
@@ -289,7 +329,7 @@ namespace Systems
             {
                 queries[takenSlots[i]].Dispose ();
             }
-            for (int i = 0; i < maxQueries; i++)
+            for (int i = 0; i < MaxQueries; i++)
             {
                 statuses[i].Dispose ();
                 results[i].Dispose ();
