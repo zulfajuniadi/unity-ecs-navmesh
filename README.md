@@ -8,7 +8,7 @@ I'm getting around 40-50 FPS with 100,000 entities traversing the navmesh.
 
 Requires Unity version 2018.1 or newer to run. Scripting Runtime Version has to be set to .NET 4.0 and the ECS packages installed via the package manager.
 
-## Usage
+## Path Finding Usage
 
 The navmesh queries are jobified which means that it will try run on all cores. The main script is the `NavMeshQuerySystem.cs`. To use it in your project, just include that file. There are 3 methods to call when using the NavMeshQuery class:
 
@@ -27,6 +27,39 @@ Static counterparts of the methods can also be called. This enables monobehaviou
 `static void RegisterPathFailedCallbackStatic (FailedQueryDelegate callback)`
 
 `static void RequestPathStatic (int id, Vector3 from, Vector3 to)`
+
+## NavAgent Usage
+
+If you want to use the built in NavAgent Component, you can just add that to your existing archetype. This will allow you to set the entity's destination via the `void SetDestination (Entity entity, NavAgent agent, Vector3 destination)` method. Calling this will request a path from the NavMesh and move the agent once the path has been resolved. Alternatively the `static void SetDestinationStatic (Entity entity, NavAgent agent, Vector3 destination)` is also available.
+
+There are a few properties to set from an agent:
+
+1. Stopping Distance
+2. Accelleration
+3. Max Move Speed
+4. Rotation Speed
+
+You can also have your own Position and Rotation component on the agent. To sync the position and rotation component, be sure to add a combination of these components according to your needs:
+
+1. `SyncPositionToNavAgent`: This will copy the Position Component's Value to the NavAgent prior movement.
+2. `SyncPositionFromNavAgent`: This will copy the rotation of the NavAgent to the Position Component after movement.
+3. `SyncRotationToNavAgent`: This will copy the Rotation Component's Value to the NavAgent prior movement.
+4. `SyncRotationFromNavAgent`: This will copy the rotation of the NavAgent to the Rotation Component after movement.
+
+An example NavAgent archetype would have these components:
+
+```cs
+var agent = Getmanager ().CreateArchetype (
+    typeof (NavAgent),
+    typeof (Position),                 // optional
+    typeof (Rotation),                 // optional
+    typeof (SyncPositionToNavAgent),   // optional
+    typeof (SyncRotationToNavAgent),   // optional
+    typeof (SyncPositionFromNavAgent), // optional
+    typeof (SyncRotationFromNavAgent), // optional
+    typeof (TransformMatrix)           // optional for instanced mesh rendering
+);
+```
 
 ## License
 
