@@ -13,5 +13,5 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Active: 1
   _types:
-  - _typeString: Modifiers.Building
+  - _typeString: Demo.Modifiers.Building
     _script: {fileID: 11500000, guid: 43db109f97364d4439a69cc88d36a41d, type: 3}

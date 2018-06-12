@@ -13,5 +13,5 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Active: 1
   _types:
-  - _typeString: Modifiers.Sidewalk
+  - _typeString: Demo.Modifiers.Sidewalk
     _script: {fileID: 11500000, guid: 3a99b8ae02122ab4d867edfa346343f6, type: 3}

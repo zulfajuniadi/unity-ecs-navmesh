@@ -1116,6 +1116,10 @@ MonoBehaviour:
   Renderers:
   - {fileID: 1149422620}
   InitialSpawn: 10000
+  AgentStoppingDistance: 0.1
+  AgentAccelleration: 1
+  AgentMaxMoveSpeed: 4
+  AgentRotationSpeed: 10
 --- !u!114 &919302103
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1884,7 +1888,7 @@ Camera:
   m_TargetDisplay: 0
   m_TargetEye: 3
   m_HDR: 1
-  m_AllowMSAA: 0
+  m_AllowMSAA: 1
   m_AllowDynamicResolution: 0
   m_ForceIntoRT: 1
   m_OcclusionCulling: 1
@@ -1897,7 +1901,7 @@ Transform:
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 2001912278}
   m_LocalRotation: {x: 0.46193978, y: 0.33141357, z: -0.19134171, w: 0.8001032}
-  m_LocalPosition: {x: -75.8, y: 60, z: -56.199997}
+  m_LocalPosition: {x: -94.02083, y: 119.999985, z: -66.956856}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
@@ -1937,13 +1941,13 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 4294967295
   maxHeight: 10
-  minHeight: 60
+  minHeight: 120
   heightDampening: 5
   keyboardZoomingSensitivity: 2
-  scrollWheelZoomingSensitivity: 60
+  scrollWheelZoomingSensitivity: 20
   limitMap: 1
-  limitX: {x: -88.61511, y: 28.61511}
-  limitY: {x: -67.09686, y: 37.09686}
+  limitX: {x: -136.2, y: -28.5}
+  limitY: {x: -67.09686, y: -15.6}
   targetFollow: {fileID: 0}
   targetOffset: {x: 0, y: 0, z: 0}
   useScreenEdgeInput: 0
