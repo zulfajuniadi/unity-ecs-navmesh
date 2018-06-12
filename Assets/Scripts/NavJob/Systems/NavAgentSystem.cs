@@ -16,23 +16,23 @@ using UnityEngine;
 namespace NavJob.Systems
 {
 
+    class SetDestinationBarrier : BarrierSystem { }
+    class PathSuccessBarrier : BarrierSystem { }
+    class PathErrorBarrier : BarrierSystem { }
+
     public class NavAgentSystem : JobComponentSystem
     {
 
-        class SetDestinationBarrier : BarrierSystem { }
-        class PathSuccessBarrier : BarrierSystem { }
-        class PathErrorBarrier : BarrierSystem { }
-
-        NativeQueue<AgentData> needsWaypoint = new NativeQueue<AgentData> (Allocator.Persistent);
-        ConcurrentDictionary<int, Vector3[]> waypoints = new ConcurrentDictionary<int, Vector3[]> ();
-        NativeHashMap<int, AgentData> pathFindingData = new NativeHashMap<int, AgentData> (0, Allocator.Persistent);
-
-        public struct AgentData
+        private struct AgentData
         {
             public int index;
             public Entity entity;
             public NavAgent agent;
         }
+
+        private NativeQueue<AgentData> needsWaypoint = new NativeQueue<AgentData> (Allocator.Persistent);
+        private ConcurrentDictionary<int, Vector3[]> waypoints = new ConcurrentDictionary<int, Vector3[]> ();
+        private NativeHashMap<int, AgentData> pathFindingData = new NativeHashMap<int, AgentData> (0, Allocator.Persistent);
 
         [BurstCompile]
         private struct DetectNextWaypointJob : IJobParallelFor
@@ -163,7 +163,36 @@ namespace NavJob.Systems
             return inputDeps;
         }
 
-        internal static NavAgentSystem instance;
+        /// <summary>
+        /// Used to set an agent destination and start the pathfinding process
+        /// </summary>
+        /// <param name="entity"></param>
+        /// <param name="agent"></param>
+        /// <param name="destination"></param>
+        public void SetDestination (Entity entity, NavAgent agent, Vector3 destination)
+        {
+            if (pathFindingData.TryAdd (entity.Index, new AgentData { index = entity.Index, entity = entity, agent = agent }))
+            {
+                var command = setDestinationBarrier.CreateCommandBuffer ();
+                agent.status = AgentStatus.PathQueued;
+                agent.destination = destination;
+                command.SetComponent<NavAgent> (entity, agent);
+                querySystem.RequestPath (entity.Index, agent.position, agent.destination);
+            }
+        }
+
+        /// <summary>
+        /// Static counterpart of SetDestination
+        /// </summary>
+        /// <param name="entity"></param>
+        /// <param name="agent"></param>
+        /// <param name="destination"></param>
+        public static void SetDestinationStatic (Entity entity, NavAgent agent, Vector3 destination)
+        {
+            instance.SetDestination (entity, agent, destination);
+        }
+
+        protected static NavAgentSystem instance;
 
         protected override void OnCreateManager (int capacity)
         {
@@ -176,23 +205,6 @@ namespace NavJob.Systems
         {
             needsWaypoint.Dispose ();
             pathFindingData.Dispose ();
-        }
-
-        public static void SetDestinationStatic (Entity entity, NavAgent agent, Vector3 destination)
-        {
-            instance.SetDestination (entity, agent, destination);
-        }
-
-        public void SetDestination (Entity entity, NavAgent agent, Vector3 destination)
-        {
-            if (pathFindingData.TryAdd (entity.Index, new AgentData { index = entity.Index, entity = entity, agent = agent }))
-            {
-                var command = setDestinationBarrier.CreateCommandBuffer ();
-                agent.status = AgentStatus.PathQueued;
-                agent.destination = destination;
-                command.SetComponent<NavAgent> (entity, agent);
-                querySystem.RequestPath (entity.Index, agent.position, agent.destination);
-            }
         }
 
         private void SetWaypoint (Entity entity, NavAgent agent, Vector3[] newWaypoints)
