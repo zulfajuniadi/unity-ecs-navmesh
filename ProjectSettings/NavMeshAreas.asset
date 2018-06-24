@@ -13,11 +13,11 @@ NavMeshProjectSettings:
     cost: 2
   - name: Road
     cost: 1
-  - name: Sidewalk
-    cost: 1
   - name: Buildings
-    cost: 50
-  - name: 
+    cost: 1000
+  - name: Water
+    cost: 1
+  - name: Walls
     cost: 1
   - name: 
     cost: 1
