@@ -79,7 +79,7 @@ namespace NavJob.Systems
             public int id;
             public float3 from;
             public float3 to;
-            public int areas;
+            public int areaMask;
         }
 
         /// <summary>
@@ -106,9 +106,9 @@ namespace NavJob.Systems
         /// <param name="id"></param>
         /// <param name="from"></param>
         /// <param name="to"></param>
-        public void RequestPath (int id, Vector3 from, Vector3 to, int areas = -1)
+        public void RequestPath (int id, Vector3 from, Vector3 to, int areaMask = -1)
         {
-            var data = new PathQueryData { id = id, from = from, to = to, areas = areas };
+            var data = new PathQueryData { id = id, from = from, to = to, areaMask = areaMask };
             QueryQueue.Enqueue (data);
         }
 
@@ -136,9 +136,9 @@ namespace NavJob.Systems
         /// <param name="id"></param>
         /// <param name="from"></param>
         /// <param name="to"></param>
-        public static void RequestPathStatic (int id, Vector3 from, Vector3 to, int areas = -1)
+        public static void RequestPathStatic (int id, Vector3 from, Vector3 to, int areaMask = -1)
         {
-            instance.RequestPath (id, from, to, areas);
+            instance.RequestPath (id, from, to, areaMask);
         }
 
         private struct UpdateQueryStatusJob : IJob
@@ -241,7 +241,7 @@ namespace NavJob.Systems
                             pathFailedCallbacks?.Invoke (pending.id, PathfindingFailedReason.InvalidToOrFromLocation);
                             continue;
                         }
-                        var status = query.BeginFindPath (from, to, pending.areas);
+                        var status = query.BeginFindPath (from, to, pending.areaMask);
                         if (status == PathQueryStatus.InProgress || status == PathQueryStatus.Success)
                         {
                             takenSlots.Add (index);

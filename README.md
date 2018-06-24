@@ -16,7 +16,7 @@ The navmesh queries are jobified which means that it will try run on all cores. 
 
 `void RegisterPathFailedCallback(FailedQueryDelegate callback)` is used to register the path failed handler.
 
-`void RequestPath (int id, Vector3 from, Vector3 to)` is used to query the navmesh. The `id` field is for you to set. In this example project the ID is set to entity ID to determine which result belongs to which entity.
+`void RequestPath (int id, Vector3 from, Vector3 to, int areaMask)` is used to query the navmesh. The `id` field is for you to set. In this example project the ID is set to entity ID to determine which result belongs to which entity.
 
 Upon successful query, all registered success callbacks will be called with the `id` of the request and the `Vector3[]` path. On failure, all registered failure callbacks will be called with the `id` and the `PathfindingFailedReason` enum.
 
@@ -26,7 +26,7 @@ Static counterparts of the methods can also be called. This enables monobehaviou
 
 `static void RegisterPathFailedCallbackStatic (FailedQueryDelegate callback)`
 
-`static void RequestPathStatic (int id, Vector3 from, Vector3 to)`
+`static void RequestPathStatic (int id, Vector3 from, Vector3 to, int areaMask)`
 
 ## NavAgent Usage
 
@@ -38,6 +38,7 @@ There are a few properties to set from an agent:
 2. Accelleration
 3. Max Move Speed
 4. Rotation Speed
+5. Agent Area Mask
 
 You can also have your own Position and Rotation component on the agent. To sync the position and rotation component, be sure to add a combination of these components according to your needs:
 
