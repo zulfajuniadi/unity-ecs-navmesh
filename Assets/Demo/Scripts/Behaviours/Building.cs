@@ -7,7 +7,7 @@ using UnityEngine.AI;
 
 #endregion
 
-namespace Demo.Modifiers
+namespace Demo.Behaviours
 {
     public enum BuildingType
     {

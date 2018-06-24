@@ -5,7 +5,7 @@ using UnityEngine.AI;
 
 #endregion
 
-namespace Demo.Modifiers
+namespace Demo.Behaviours
 {
     [RequireComponent (typeof (MeshCollider), typeof (NavMeshModifier))]
     public class Road : MonoBehaviour

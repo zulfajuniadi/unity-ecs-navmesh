@@ -1,4 +1,4 @@
-﻿using Demo.Modifiers;
+﻿using Demo.Behaviours;
 using Unity.Entities;
 using Unity.Mathematics;
 

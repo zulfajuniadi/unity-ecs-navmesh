@@ -87,7 +87,7 @@ namespace Demo.Behaviours
 				var modifier = child.gameObject.AddComponent<NavMeshModifier> ();
 				modifier.overrideArea = true;
 				modifier.area = 4;
-				child.gameObject.AddComponent<Demo.Modifiers.Building> ();
+				child.gameObject.AddComponent<Building> ();
 			}
 
 			GetComponent<BuildNavMesh> ().Build ();

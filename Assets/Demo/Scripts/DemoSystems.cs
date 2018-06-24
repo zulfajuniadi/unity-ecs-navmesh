@@ -1,7 +1,6 @@
 #region
 
 using Demo.Behaviours;
-using Demo.Modifiers;
 using NavJob.Components;
 using NavJob.Systems;
 using Unity.Burst;
