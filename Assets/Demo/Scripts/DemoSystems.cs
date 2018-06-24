@@ -161,6 +161,21 @@ namespace Demo
             }
         }
 
+        private Text cachedPathText;
+
+        private Text CachedPathText
+        {
+            get
+            {
+                if (cachedPathText == null)
+                {
+                    cachedPathText = GameObject.Find ("CachedPathText").GetComponent<Text> ();
+                }
+
+                return cachedPathText;
+            }
+        }
+
         private float _nextUpdate;
 
         private NativeQueue<AgentData> needsPath = new NativeQueue<AgentData> (Allocator.Persistent);
@@ -211,7 +226,8 @@ namespace Demo
         {
             if (Time.time > _nextUpdate)
             {
-                AwaitingNavmeshText.text = $"Awaiting Path: {navQuery.Pending} people";
+                AwaitingNavmeshText.text = $"Awaiting Path: {navQuery.PendingCount} people";
+                CachedPathText.text = $"Cached Paths: {navQuery.CachedCount}";
                 _nextUpdate = Time.time + 0.5f;
             }
             var inputDeps = new DetectIdleAgentJob { data = data, needsPath = needsPath }.Schedule (data.Length, 64);

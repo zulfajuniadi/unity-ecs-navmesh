@@ -22,14 +22,6 @@ namespace NavJob.Systems
     public class NavMeshQuerySystem : JobComponentSystem
     {
 
-        public int QueueCount
-        {
-            get
-            {
-                return QueryQueue.Count + ProgressQueue.Length;
-            }
-        }
-
         /// <summary>
         /// How many navmesh queries are run on each update.
         /// </summary>
@@ -46,13 +38,34 @@ namespace NavJob.Systems
         public int MaxIterations = 1024;
 
         /// <summary>
-        /// Pending nav mesh
+        /// Max map width
         /// </summary>
-        public int Pending
+        public int MaxMapWidth = 10000;
+
+        /// <summary>
+        /// Cache query results
+        /// </summary>
+        public bool UseCache = false;
+
+        /// <summary>
+        /// Pending nav mesh count
+        /// </summary>
+        public int PendingCount
         {
             get
             {
                 return QueryQueue.Count;
+            }
+        }
+
+        /// <summary>
+        /// Cached path count
+        /// </summary>
+        public int CachedCount
+        {
+            get
+            {
+                return cachedPaths.Count;
             }
         }
 
@@ -73,10 +86,12 @@ namespace NavJob.Systems
         public delegate void FailedQueryDelegate (int id, PathfindingFailedReason reason);
         private SuccessQueryDelegate pathResolvedCallbacks;
         private FailedQueryDelegate pathFailedCallbacks;
+        private ConcurrentDictionary<int, Vector3[]> cachedPaths = new ConcurrentDictionary<int, Vector3[]> ();
 
         private struct PathQueryData
         {
             public int id;
+            public int key;
             public float3 from;
             public float3 to;
             public int areaMask;
@@ -108,8 +123,25 @@ namespace NavJob.Systems
         /// <param name="to"></param>
         public void RequestPath (int id, Vector3 from, Vector3 to, int areaMask = -1)
         {
-            var data = new PathQueryData { id = id, from = from, to = to, areaMask = areaMask };
+            var key = GetKey ((int) from.x, (int) from.z, (int) to.x, (int) to.z);
+            if (UseCache)
+            {
+                if (cachedPaths.TryGetValue (key, out Vector3[] waypoints))
+                {
+                    pathResolvedCallbacks?.Invoke (id, waypoints);
+                    return;
+                }
+            }
+            var data = new PathQueryData { id = id, from = from, to = to, areaMask = areaMask, key = key };
             QueryQueue.Enqueue (data);
+        }
+
+        /// <summary>
+        /// Purge the cached paths
+        /// </summary>
+        public void PurgeCache ()
+        {
+            cachedPaths.Clear ();
         }
 
         /// <summary>
@@ -139,6 +171,14 @@ namespace NavJob.Systems
         public static void RequestPathStatic (int id, Vector3 from, Vector3 to, int areaMask = -1)
         {
             instance.RequestPath (id, from, to, areaMask);
+        }
+
+        /// <summary>
+        /// Static counterpart of PurgeCache
+        /// </summary>
+        public static void PurgeCacheStatic ()
+        {
+            instance.PurgeCache ();
         }
 
         private struct UpdateQueryStatusJob : IJob
@@ -227,11 +267,15 @@ namespace NavJob.Systems
             int j = 0;
             while (QueryQueue.Count > 0 && availableSlots.Count > 0)
             {
-                j++;
                 if (QueryQueue.TryDequeue (out PathQueryData pending))
                 {
-                    if (availableSlots.TryDequeue (out int index))
+                    if (UseCache && cachedPaths.TryGetValue (pending.key, out Vector3[] waypoints))
                     {
+                        pathResolvedCallbacks?.Invoke (pending.id, waypoints);
+                    }
+                    else if (availableSlots.TryDequeue (out int index))
+                    {
+                        j++;
                         var query = new NavMeshQuery (world, Allocator.Persistent, MaxPathSize);
                         var from = query.MapLocation (pending.from, Vector3.one * 10, 0);
                         var to = query.MapLocation (pending.to, Vector3.one * 10, 0);
@@ -299,6 +343,10 @@ namespace NavJob.Systems
                         {
                             waypoints[k] = job.results[k].position;
                         }
+                        if (UseCache)
+                        {
+                            cachedPaths[job.data.key] = waypoints;
+                        }
                         pathResolvedCallbacks?.Invoke (job.data.id, waypoints);
                     }
                     else if (job.statuses[1] == 2)
@@ -360,6 +408,13 @@ namespace NavJob.Systems
                 statuses[i].Dispose ();
                 results[i].Dispose ();
             }
+        }
+
+        private int GetKey (int fromX, int fromZ, int toX, int toZ)
+        {
+            var fromKey = MaxMapWidth * fromX + fromZ;
+            var toKey = MaxMapWidth * toX + toZ;
+            return MaxMapWidth * fromKey + toKey;
         }
     }
 

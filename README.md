@@ -18,6 +18,8 @@ The navmesh queries are jobified which means that it will try run on all cores. 
 
 `void RequestPath (int id, Vector3 from, Vector3 to, int areaMask)` is used to query the navmesh. The `id` field is for you to set. In this example project the ID is set to entity ID to determine which result belongs to which entity.
 
+`void PurgeCache ()` is used to purge the navmesh cache.
+
 Upon successful query, all registered success callbacks will be called with the `id` of the request and the `Vector3[]` path. On failure, all registered failure callbacks will be called with the `id` and the `PathfindingFailedReason` enum.
 
 Static counterparts of the methods can also be called. This enables monobehaviours and other classes to query the navmesh without the needing injection via the ECS system:
@@ -27,6 +29,28 @@ Static counterparts of the methods can also be called. This enables monobehaviou
 `static void RegisterPathFailedCallbackStatic (FailedQueryDelegate callback)`
 
 `static void RequestPathStatic (int id, Vector3 from, Vector3 to, int areaMask)`
+
+`static void PurgeCache ()`
+
+## NavMeshQuerySystem Settings
+
+There's a few settings on the NavMeshQuerySystem that you can tweak to your needs:
+
+`int MaxQueries` Maximum queries processed per frame. Default is `256`.
+
+`int MaxPathSize` Maximum path size of the query process. This value will autogrow according to the complexity of your map. Default is `1024`.
+
+`int MaxIterations` Maximum iterations of the pathfinding process. Default is `1024`.
+
+`bool UseCache` Whether the NavMeshQuery system will cache the results. Default is `false`.
+
+`int MaxMapWidth` Maximum map width. This is used to calculate the cache key. Default is `10000`.
+
+Apart from that you can access these properties to see the current status of the system:
+
+`int PendingCount` How many pending queries are awaiting to be processed.
+
+`int CachedCount` How many paths are currently cached.
 
 ## NavAgent Usage
 

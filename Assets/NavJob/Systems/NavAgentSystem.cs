@@ -200,6 +200,9 @@ namespace NavJob.Systems
         protected override void OnCreateManager (int capacity)
         {
             instance = this;
+            querySystem.UseCache = true;
+            querySystem.MaxQueries = 256;
+            querySystem.MaxPathSize = 16000;
             querySystem.RegisterPathResolvedCallback (OnPathSuccess);
             querySystem.RegisterPathFailedCallback (OnPathError);
         }
