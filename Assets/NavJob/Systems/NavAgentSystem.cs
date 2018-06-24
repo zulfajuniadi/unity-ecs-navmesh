@@ -117,7 +117,9 @@ namespace NavJob.Systems
                 {
                     agent.currentMoveSpeed = Mathf.Lerp (agent.currentMoveSpeed, agent.maxMoveSpeed, dt * agent.accelleration);
                     // todo: deceleration
-                    agent.position += math.forward (agent.rotation) * agent.currentMoveSpeed * dt;
+                    var forward = math.forward (agent.rotation) * agent.currentMoveSpeed * dt;
+                    agent.position += forward;
+                    agent.nextPosition = agent.position + forward;
                     var heading = (Vector3) (agent.currentWaypoint - agent.position);
                     agent.remainingDistance = heading.magnitude;
                     if (agent.remainingDistance > 0.001f)
@@ -136,6 +138,7 @@ namespace NavJob.Systems
                 }
                 else if (agent.nextWaypointIndex == agent.totalWaypoints)
                 {
+                    agent.nextPosition = new float3 { x = Mathf.Infinity, y = Mathf.Infinity, z = Mathf.Infinity };
                     agent.status = AgentStatus.Idle;
                 }
             }
@@ -169,7 +172,7 @@ namespace NavJob.Systems
         /// <param name="entity"></param>
         /// <param name="agent"></param>
         /// <param name="destination"></param>
-        public void SetDestination (Entity entity, NavAgent agent, Vector3 destination)
+        public void SetDestination (Entity entity, NavAgent agent, Vector3 destination, int areas = -1)
         {
             if (pathFindingData.TryAdd (entity.Index, new AgentData { index = entity.Index, entity = entity, agent = agent }))
             {
@@ -177,7 +180,7 @@ namespace NavJob.Systems
                 agent.status = AgentStatus.PathQueued;
                 agent.destination = destination;
                 command.SetComponent<NavAgent> (entity, agent);
-                querySystem.RequestPath (entity.Index, agent.position, agent.destination);
+                querySystem.RequestPath (entity.Index, agent.position, agent.destination, areas);
             }
         }
 
@@ -187,9 +190,9 @@ namespace NavJob.Systems
         /// <param name="entity"></param>
         /// <param name="agent"></param>
         /// <param name="destination"></param>
-        public static void SetDestinationStatic (Entity entity, NavAgent agent, Vector3 destination)
+        public static void SetDestinationStatic (Entity entity, NavAgent agent, Vector3 destination, int areas = -1)
         {
-            instance.SetDestination (entity, agent, destination);
+            instance.SetDestination (entity, agent, destination, areas);
         }
 
         protected static NavAgentSystem instance;

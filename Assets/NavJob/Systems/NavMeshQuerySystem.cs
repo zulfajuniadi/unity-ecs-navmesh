@@ -7,6 +7,7 @@ using Unity.Entities;
 using Unity.Jobs;
 using Unity.Mathematics;
 using UnityEngine;
+using UnityEngine.AI;
 using UnityEngine.Experimental.AI;
 
 namespace NavJob.Systems
@@ -32,17 +33,28 @@ namespace NavJob.Systems
         /// <summary>
         /// How many navmesh queries are run on each update.
         /// </summary>
-        public int MaxQueries = 64;
+        public int MaxQueries = 256;
 
         /// <summary>
         /// Maximum path size of each query
         /// </summary>
-        public int MaxPathSize = 2048;
+        public int MaxPathSize = 1024;
 
         /// <summary>
         /// Maximum iteration on each update cycle
         /// </summary>
-        public int MaxIterations = 128;
+        public int MaxIterations = 1024;
+
+        /// <summary>
+        /// Pending nav mesh
+        /// </summary>
+        public int Pending
+        {
+            get
+            {
+                return QueryQueue.Count;
+            }
+        }
 
         private NavMeshWorld world;
         private NavMeshQuery locationQuery;
@@ -67,6 +79,7 @@ namespace NavJob.Systems
             public int id;
             public float3 from;
             public float3 to;
+            public int areas;
         }
 
         /// <summary>
@@ -93,9 +106,9 @@ namespace NavJob.Systems
         /// <param name="id"></param>
         /// <param name="from"></param>
         /// <param name="to"></param>
-        public void RequestPath (int id, Vector3 from, Vector3 to)
+        public void RequestPath (int id, Vector3 from, Vector3 to, int areas = -1)
         {
-            var data = new PathQueryData { id = id, from = from, to = to };
+            var data = new PathQueryData { id = id, from = from, to = to, areas = areas };
             QueryQueue.Enqueue (data);
         }
 
@@ -123,9 +136,9 @@ namespace NavJob.Systems
         /// <param name="id"></param>
         /// <param name="from"></param>
         /// <param name="to"></param>
-        public static void RequestPathStatic (int id, Vector3 from, Vector3 to)
+        public static void RequestPathStatic (int id, Vector3 from, Vector3 to, int areas = -1)
         {
-            instance.RequestPath (id, from, to);
+            instance.RequestPath (id, from, to, areas);
         }
 
         private struct UpdateQueryStatusJob : IJob
@@ -142,7 +155,7 @@ namespace NavJob.Systems
             {
                 var status = query.UpdateFindPath (maxIterations, out int performed);
 
-                if (status == PathQueryStatus.InProgress || status == (PathQueryStatus.OutOfNodes | PathQueryStatus.InProgress))
+                if (status == PathQueryStatus.InProgress | status == (PathQueryStatus.InProgress | PathQueryStatus.OutOfNodes))
                 {
                     statuses[0] = 0;
                     return;
@@ -180,7 +193,7 @@ namespace NavJob.Systems
                         }
                         else
                         {
-                            Debug.Log (pathStatus);
+                            Debug.LogWarning (pathStatus);
                             statuses[0] = 1;
                             statuses[1] = 2;
                         }
@@ -190,10 +203,15 @@ namespace NavJob.Systems
                     }
                     else
                     {
-                        Debug.Log (endStatus);
+                        Debug.LogWarning (endStatus);
                         statuses[0] = 1;
                         statuses[1] = 2;
                     }
+                }
+                else
+                {
+                    statuses[0] = 1;
+                    statuses[1] = 3;
                 }
             }
         }
@@ -223,7 +241,7 @@ namespace NavJob.Systems
                             pathFailedCallbacks?.Invoke (pending.id, PathfindingFailedReason.InvalidToOrFromLocation);
                             continue;
                         }
-                        var status = query.BeginFindPath (from, to);
+                        var status = query.BeginFindPath (from, to, pending.areas);
                         if (status == PathQueryStatus.InProgress || status == PathQueryStatus.Success)
                         {
                             takenSlots.Add (index);
@@ -286,6 +304,15 @@ namespace NavJob.Systems
                     else if (job.statuses[1] == 2)
                     {
                         pathFailedCallbacks?.Invoke (job.data.id, PathfindingFailedReason.FailedToResolve);
+                    }
+                    else if (job.statuses[1] == 3)
+                    {
+                        if (MaxPathSize < job.maxPathSize * 2)
+                        {
+                            MaxPathSize = job.maxPathSize * 2;
+                            // Debug.Log ("Setting path to: " + MaxPathSize);
+                        }
+                        QueryQueue.Enqueue (job.data);
                     }
                     queries[index].Dispose ();
                     availableSlots.Enqueue (index);

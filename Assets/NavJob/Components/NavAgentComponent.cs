@@ -9,7 +9,8 @@ namespace NavJob.Components
     {
         Idle = 0,
         PathQueued = 1,
-        Moving = 2
+        Moving = 2,
+        Paused = 4
     }
 
     [System.Serializable]
@@ -21,8 +22,10 @@ namespace NavJob.Components
         public float currentMoveSpeed;
         public float accelleration;
         public float rotationSpeed;
+        public int areaMask;
         public AgentStatus status;
         public float3 position { get; set; }
+        public float3 nextPosition { get; set; }
         public Quaternion rotation { get; set; }
         public float remainingDistance { get; set; }
         public float3 currentWaypoint { get; set; }
