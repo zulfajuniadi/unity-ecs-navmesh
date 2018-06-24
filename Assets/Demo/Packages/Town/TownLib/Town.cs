@@ -28,7 +28,7 @@ namespace Town
         public Town (TownOptions options)
         {
             Options = options;
-            Rnd.Seed = options.Seed.Value;
+            Rnd.Seed = options.Seed;
 
             var ok = false;
             while (!ok)

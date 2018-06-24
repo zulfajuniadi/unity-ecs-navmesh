@@ -6,7 +6,7 @@
         public bool Walls { get; set; }
         public bool Water { get; set; }
         public int Patches { get; set; }
-        public int? Seed { get; set; }
+        public int Seed { get; set; }
 
         public static TownOptions Default => new TownOptions { Patches = 35 };
     }
