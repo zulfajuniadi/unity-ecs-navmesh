@@ -23,7 +23,7 @@ namespace NavJob.Components
         public float accelleration;
         public float rotationSpeed;
         public int areaMask;
-        public AgentStatus status;
+        public int queryVersion { get; set; }
         public float3 position { get; set; }
         public float3 nextPosition { get; set; }
         public Quaternion rotation { get; set; }

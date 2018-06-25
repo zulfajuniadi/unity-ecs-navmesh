@@ -37,6 +37,7 @@ namespace NavJob.Systems
         [BurstCompile]
         private struct DetectNextWaypointJob : IJobParallelFor
         {
+            public int navMeshQuerySystemVersion;
             public InjectData data;
             public NativeQueue<AgentData>.Concurrent needsWaypoint;
 
@@ -52,7 +53,7 @@ namespace NavJob.Systems
                 {
                     needsWaypoint.Enqueue (new AgentData { agent = data.Agents[index], entity = entity, index = index });
                 }
-                else
+                else if (navMeshQuerySystemVersion != agent.queryVersion || agent.nextWaypointIndex == agent.totalWaypoints)
                 {
                     agent.totalWaypoints = 0;
                     agent.currentWaypoint = 0;
@@ -160,7 +161,7 @@ namespace NavJob.Systems
         protected override JobHandle OnUpdate (JobHandle inputDeps)
         {
             var dt = Time.deltaTime;
-            inputDeps = new DetectNextWaypointJob { data = data, needsWaypoint = needsWaypoint }.Schedule (data.Length, 64, inputDeps);
+            inputDeps = new DetectNextWaypointJob { data = data, needsWaypoint = needsWaypoint, navMeshQuerySystemVersion = querySystem.Version }.Schedule (data.Length, 64, inputDeps);
             inputDeps = new SetNextWaypointJob { data = data, needsWaypoint = needsWaypoint }.Schedule (inputDeps);
             inputDeps = new MovementJob (data, dt).Schedule (data.Length, 64, inputDeps);
             return inputDeps;
@@ -179,6 +180,7 @@ namespace NavJob.Systems
                 var command = setDestinationBarrier.CreateCommandBuffer ();
                 agent.status = AgentStatus.PathQueued;
                 agent.destination = destination;
+                agent.queryVersion = querySystem.Version;
                 command.SetComponent<NavAgent> (entity, agent);
                 querySystem.RequestPath (entity.Index, agent.position, agent.destination, areas);
             }

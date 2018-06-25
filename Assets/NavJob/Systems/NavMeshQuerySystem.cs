@@ -48,6 +48,11 @@ namespace NavJob.Systems
         public bool UseCache = false;
 
         /// <summary>
+        /// Current version of the cache
+        /// </summary>
+        public int Version = 0;
+
+        /// <summary>
         /// Pending nav mesh count
         /// </summary>
         public int PendingCount
@@ -81,7 +86,18 @@ namespace NavJob.Systems
         private PathQueryData[] queryDatas;
         private NavMeshQuery[] queries;
         private Dictionary<int, UpdateQueryStatusJob> jobs;
-        private static NavMeshQuerySystem instance;
+        private static NavMeshQuerySystem _instance;
+        private static NavMeshQuerySystem instance
+        {
+            get
+            {
+                if (_instance == null)
+                {
+                    _instance = World.Active.GetOrCreateManager<NavMeshQuerySystem> ();
+                }
+                return _instance;
+            }
+        }
         public delegate void SuccessQueryDelegate (int id, Vector3[] corners);
         public delegate void FailedQueryDelegate (int id, PathfindingFailedReason reason);
         private SuccessQueryDelegate pathResolvedCallbacks;
@@ -141,6 +157,7 @@ namespace NavJob.Systems
         /// </summary>
         public void PurgeCache ()
         {
+            Version++;
             cachedPaths.Clear ();
         }
 
@@ -275,7 +292,6 @@ namespace NavJob.Systems
                     }
                     else if (availableSlots.TryDequeue (out int index))
                     {
-                        j++;
                         var query = new NavMeshQuery (world, Allocator.Persistent, MaxPathSize);
                         var from = query.MapLocation (pending.from, Vector3.one * 10, 0);
                         var to = query.MapLocation (pending.to, Vector3.one * 10, 0);
@@ -288,6 +304,7 @@ namespace NavJob.Systems
                         var status = query.BeginFindPath (from, to, pending.areaMask);
                         if (status == PathQueryStatus.InProgress || status == PathQueryStatus.Success)
                         {
+                            j++;
                             takenSlots.Add (index);
                             queries[index] = query;
                             queryDatas[index] = pending;
@@ -302,6 +319,7 @@ namespace NavJob.Systems
                     }
                     else
                     {
+                        Debug.Log ("index not available");
                         QueryQueue.Enqueue (pending);
                     }
                 }
@@ -392,7 +410,6 @@ namespace NavJob.Systems
                 availableSlots.Enqueue (i);
             }
             QueryQueue = new ConcurrentQueue<PathQueryData> ();
-            instance = this;
         }
 
         protected override void OnDestroyManager ()
