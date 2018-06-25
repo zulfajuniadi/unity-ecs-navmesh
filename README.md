@@ -56,13 +56,14 @@ Apart from that you can access these properties to see the current status of the
 
 If you want to use the built in NavAgent Component, you can just add that to your existing archetype. This will allow you to set the entity's destination via the `void SetDestination (Entity entity, NavAgent agent, Vector3 destination)` method. Calling this will request a path from the NavMesh and move the agent once the path has been resolved. Alternatively the `static void SetDestinationStatic (Entity entity, NavAgent agent, Vector3 destination)` is also available.
 
-There are a few properties to set from an agent:
+There are a few properties to set on an `NavAgent` component:
 
-1. Stopping Distance
-2. Accelleration
-3. Max Move Speed
-4. Rotation Speed
-5. Agent Area Mask
+1. Stopping Distance: The distance from the target the agent will auto stop
+2. Acceleration: The agent acceleration
+3. Move Speed: The agent max move speed in unity units per second
+4. Rotation Speed: The agent rotation speed
+5. Agent Area Mask: The NavMesh area mask the agent is allowed to traverse. Set -1 if unsure.
+6. Agent Avoidance Diameter: Diameter of the agent for local avoidance. Set to 0 to disable local avoidance.
 
 You can also have your own Position and Rotation component on the agent. To sync the position and rotation component, be sure to add a combination of these components according to your needs:
 
