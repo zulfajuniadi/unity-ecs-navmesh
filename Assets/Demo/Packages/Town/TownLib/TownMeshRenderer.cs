@@ -81,7 +81,7 @@ namespace Town
                     vertices.Add (new Vector3 (vertex.x, 0, vertex.y));
                 }
                 new MeshUtils.Polygon (building.Description + "Base", vertices, 0.1f, BuildingMaterial, Buildings.transform, true);
-                new MeshUtils.Polygon (building.Description, vertices, UnityEngine.Random.Range (2f, 6f), BuildingMaterial, BuildingsMesh.transform, false);
+                new MeshUtils.Polygon (building.Description, vertices, UnityEngine.Random.Range (2f, 4f), BuildingMaterial, BuildingsMesh.transform, false);
                 vertices.Clear ();
             }
             DrawRoads (geometry, null);

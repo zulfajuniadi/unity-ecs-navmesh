@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using NavJob.Systems;
 using Town;
 using UnityEngine;
 using UnityEngine.AI;
@@ -90,7 +91,11 @@ namespace Demo.Behaviours
 				child.gameObject.AddComponent<Building> ();
 			}
 
-			GetComponent<BuildNavMesh> ().Build ();
+			GetComponent<BuildNavMesh> ().Build ((AsyncOperation operation) =>
+			{
+				NavMeshQuerySystem.PurgeCacheStatic ();
+				Debug.Log ("Town built. Cache purged.");
+			});
 		}
 	}
 }
