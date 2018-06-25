@@ -13,9 +13,10 @@ namespace Demo.Behaviours
 
         public int InitialSpawn = 10000;
         public float AgentStoppingDistance = 0.1f;
-        public float AgentAccelleration = 1;
-        public float AgentMaxMoveSpeed = 4;
+        public float AgentAcceleration = 1;
+        public float AgentMoveSpeed = 4;
         public float AgentRotationSpeed = 10;
+        public float AgentAvoidanceDiameter = 0.7f;
         [HideInInspector]
         public int AgentAreaMask = ~(1 << 1);
 
@@ -33,10 +34,11 @@ namespace Demo.Behaviours
             {
                 Quantity = InitialSpawn,
                     AgentStoppingDistance = AgentStoppingDistance,
-                    AgentAccelleration = AgentAccelleration,
-                    AgentMaxMoveSpeed = AgentMaxMoveSpeed,
+                    AgentAcceleration = AgentAcceleration,
+                    AgentMoveSpeed = AgentMoveSpeed,
                     AgentRotationSpeed = AgentRotationSpeed,
                     AgentAreaMask = AgentAreaMask,
+                    AgentAvoidanceDiameter = AgentAvoidanceDiameter,
             });
             buildNavMesh = FindObjectOfType<BuildNavMesh> ();
         }

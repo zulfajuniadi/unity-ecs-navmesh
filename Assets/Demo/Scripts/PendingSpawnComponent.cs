@@ -7,9 +7,10 @@ namespace Demo
     {
         public int Quantity;
         public float AgentStoppingDistance;
-        public float AgentAccelleration;
-        public float AgentMaxMoveSpeed;
+        public float AgentAcceleration;
+        public float AgentMoveSpeed;
         public float AgentRotationSpeed;
+        public float AgentAvoidanceDiameter;
         public int AgentAreaMask;
     }
 

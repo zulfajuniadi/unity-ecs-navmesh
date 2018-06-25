@@ -7,6 +7,7 @@ using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
 using Unity.Jobs;
+using Unity.Mathematics;
 using Unity.Transforms;
 using UnityEngine;
 using UnityEngine.UI;
@@ -26,9 +27,6 @@ namespace Demo
 
         private Vector3 one = Vector3.one;
         private EntityArchetype agent;
-
-        [Inject] private BuildingCacheSystem buildings;
-        [Inject] private InjectData data;
 
         private int spawned;
 
@@ -83,6 +81,8 @@ namespace Demo
             );
         }
 
+        [Inject] private BuildingCacheSystem buildings;
+        [Inject] private InjectData data;
         protected override void OnUpdate ()
         {
             if (Time.time > _nextUpdate && _lastSpawned != spawned)
@@ -117,10 +117,11 @@ namespace Demo
                     position = position,
                     rotation = Quaternion.identity,
                     stoppingDistance = spawnData.AgentStoppingDistance,
-                    accelleration = spawnData.AgentAccelleration,
-                    maxMoveSpeed = spawnData.AgentMaxMoveSpeed,
+                    acceleration = spawnData.AgentAcceleration,
+                    moveSpeed = spawnData.AgentMoveSpeed,
                     rotationSpeed = spawnData.AgentRotationSpeed,
-                    areaMask = spawnData.AgentAreaMask
+                    areaMask = spawnData.AgentAreaMask,
+                    avoidanceDiameter = spawnData.AgentAvoidanceDiameter
                 };
                 // optional if set on the archetype
                 // manager.SetComponentData (entity, new Position { Value = position });

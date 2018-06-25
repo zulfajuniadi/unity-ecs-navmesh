@@ -16,14 +16,17 @@ namespace NavJob.Components
     [System.Serializable]
     public struct NavAgent : IComponentData
     {
-        public float3 destination;
         public float stoppingDistance;
-        public float maxMoveSpeed;
-        public float currentMoveSpeed;
-        public float accelleration;
+        public float moveSpeed;
+        public float acceleration;
         public float rotationSpeed;
         public int areaMask;
+        public float avoidanceDiameter;
+        public float3 destination { get; set; }
+        public float currentMoveSpeed { get; set; }
         public int queryVersion { get; set; }
+        public AgentStatus status { get; set; }
+        public float3 partition { get; set; }
         public float3 position { get; set; }
         public float3 nextPosition { get; set; }
         public Quaternion rotation { get; set; }

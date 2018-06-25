@@ -116,11 +116,12 @@ namespace NavJob.Systems
 
                 if (agent.remainingDistance > 0)
                 {
-                    agent.currentMoveSpeed = Mathf.Lerp (agent.currentMoveSpeed, agent.maxMoveSpeed, dt * agent.accelleration);
+                    agent.currentMoveSpeed = Mathf.Lerp (agent.currentMoveSpeed, agent.moveSpeed, dt * agent.acceleration);
                     // todo: deceleration
-                    var forward = math.forward (agent.rotation) * agent.currentMoveSpeed * dt;
-                    agent.position += forward;
-                    agent.nextPosition = agent.position + forward;
+                    if (agent.nextPosition.x != Mathf.Infinity)
+                    {
+                        agent.position = agent.nextPosition;
+                    }
                     var heading = (Vector3) (agent.currentWaypoint - agent.position);
                     agent.remainingDistance = heading.magnitude;
                     if (agent.remainingDistance > 0.001f)
@@ -135,12 +136,15 @@ namespace NavJob.Systems
                             agent.rotation = Quaternion.Slerp (agent.rotation, targetRotation, dt * agent.rotationSpeed);
                         }
                     }
+                    var forward = math.forward (agent.rotation) * agent.currentMoveSpeed * dt;
+                    agent.nextPosition = agent.position + forward;
                     data.Agents[index] = agent;
                 }
                 else if (agent.nextWaypointIndex == agent.totalWaypoints)
                 {
                     agent.nextPosition = new float3 { x = Mathf.Infinity, y = Mathf.Infinity, z = Mathf.Infinity };
                     agent.status = AgentStatus.Idle;
+                    data.Agents[index] = agent;
                 }
             }
         }
