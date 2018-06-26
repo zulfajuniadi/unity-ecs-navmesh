@@ -1,6 +1,6 @@
 # Unity ECS with navmesh and MapBox
 
-A demo implementation of Unity Entity Component System with NavMesh and [MapBox Unity](https://www.mapbox.com/unity/) SDK.
+A demo implementation of Unity Entity Component System with NavMesh.
 
 I'm getting around 40-50 FPS with 100,000 entities traversing the navmesh.
 
