@@ -34,6 +34,37 @@ namespace NavJob.Components
         public float3 currentWaypoint { get; set; }
         public int nextWaypointIndex { get; set; }
         public int totalWaypoints { get; set; }
+
+        public NavAgent (
+            float3 position,
+            Quaternion rotation,
+            float stoppingDistance = 1f,
+            float moveSpeed = 4f,
+            float acceleration = 1f,
+            float rotationSpeed = 10f,
+            int areaMask = -1,
+            float avoidanceDiameter = 2f
+        )
+        {
+            this.stoppingDistance = stoppingDistance;
+            this.moveSpeed = moveSpeed;
+            this.acceleration = acceleration;
+            this.rotationSpeed = rotationSpeed;
+            this.areaMask = areaMask;
+            this.avoidanceDiameter = avoidanceDiameter;
+            destination = Vector3.zero;
+            currentMoveSpeed = 0;
+            queryVersion = 0;
+            status = AgentStatus.Idle;
+            partition = 0;
+            this.position = position;
+            this.rotation = rotation;
+            nextPosition = position;
+            remainingDistance = 0;
+            currentWaypoint = Vector3.zero;
+            nextWaypointIndex = 0;
+            totalWaypoints = 0;
+        }
     }
 
     public class NavAgentComponent : ComponentDataWrapper<NavAgent> { }

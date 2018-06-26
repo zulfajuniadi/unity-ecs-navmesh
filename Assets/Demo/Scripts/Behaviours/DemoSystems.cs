@@ -112,17 +112,16 @@ namespace Demo
                 spawned++;
                 var position = buildings.GetResidentialBuilding ();
                 var entity = manager.CreateEntity (agent);
-                var navAgent = new NavAgent
-                {
-                    position = position,
-                    rotation = Quaternion.identity,
-                    stoppingDistance = spawnData.AgentStoppingDistance,
-                    acceleration = spawnData.AgentAcceleration,
-                    moveSpeed = spawnData.AgentMoveSpeed,
-                    rotationSpeed = spawnData.AgentRotationSpeed,
-                    areaMask = spawnData.AgentAreaMask,
-                    avoidanceDiameter = spawnData.AgentAvoidanceDiameter
-                };
+                var navAgent = new NavAgent (
+                    position,
+                    Quaternion.identity,
+                    spawnData.AgentStoppingDistance,
+                    spawnData.AgentMoveSpeed,
+                    spawnData.AgentAcceleration,
+                    spawnData.AgentRotationSpeed,
+                    spawnData.AgentAreaMask,
+                    spawnData.AgentAvoidanceDiameter
+                );
                 // optional if set on the archetype
                 // manager.SetComponentData (entity, new Position { Value = position });
                 manager.SetComponentData (entity, navAgent);
