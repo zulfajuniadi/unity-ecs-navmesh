@@ -21,12 +21,10 @@ namespace NavJob.Components
         public float acceleration;
         public float rotationSpeed;
         public int areaMask;
-        public float avoidanceDiameter;
         public float3 destination { get; set; }
         public float currentMoveSpeed { get; set; }
         public int queryVersion { get; set; }
         public AgentStatus status { get; set; }
-        public float3 partition { get; set; }
         public float3 position { get; set; }
         public float3 nextPosition { get; set; }
         public Quaternion rotation { get; set; }
@@ -42,8 +40,7 @@ namespace NavJob.Components
             float moveSpeed = 4f,
             float acceleration = 1f,
             float rotationSpeed = 10f,
-            int areaMask = -1,
-            float avoidanceDiameter = 2f
+            int areaMask = -1
         )
         {
             this.stoppingDistance = stoppingDistance;
@@ -51,15 +48,13 @@ namespace NavJob.Components
             this.acceleration = acceleration;
             this.rotationSpeed = rotationSpeed;
             this.areaMask = areaMask;
-            this.avoidanceDiameter = avoidanceDiameter;
             destination = Vector3.zero;
             currentMoveSpeed = 0;
             queryVersion = 0;
             status = AgentStatus.Idle;
-            partition = 0;
             this.position = position;
             this.rotation = rotation;
-            nextPosition = position;
+            nextPosition = new float3 (Mathf.Infinity, Mathf.Infinity, Mathf.Infinity);
             remainingDistance = 0;
             currentWaypoint = Vector3.zero;
             nextWaypointIndex = 0;

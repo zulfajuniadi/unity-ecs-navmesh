@@ -1,16 +1,16 @@
 #region
 
-using Demo.Behaviours;
-using NavJob.Components;
-using NavJob.Systems;
+using UnityEngine;
+using UnityEngine.UI;
 using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
 using Unity.Jobs;
 using Unity.Mathematics;
 using Unity.Transforms;
-using UnityEngine;
-using UnityEngine.UI;
+using Demo.Behaviours;
+using NavJob.Components;
+using NavJob.Systems;
 
 #endregion
 
@@ -38,38 +38,42 @@ namespace Demo
             {
                 if (spawnedText == null)
                 {
-                    spawnedText = GameObject.Find ("SpawnedText").GetComponent<Text> ();
+                    spawnedText = GameObject.Find("SpawnedText").GetComponent<Text>();
                 }
 
                 return spawnedText;
             }
         }
 
-        private PopulationSpawner Getspawner ()
+        private PopulationSpawner Getspawner()
         {
             if (_spawner == null)
             {
-                _spawner = Object.FindObjectOfType<PopulationSpawner> ();
+                _spawner = Object.FindObjectOfType<PopulationSpawner>();
             }
 
             return _spawner;
         }
 
-        private EntityManager Getmanager ()
+        private EntityManager Getmanager()
         {
             if (_manager == null)
             {
-                _manager = World.Active.GetOrCreateManager<EntityManager> ();
+                _manager = World.Active.GetOrCreateManager<EntityManager>();
             }
 
             return _manager;
         }
 
-        protected override void OnCreateManager (int capacity)
+        protected override void OnCreateManager(int capacity)
         {
-            base.OnCreateManager (capacity);
-            agent = Getmanager ().CreateArchetype (
-                typeof (NavAgent),
+            base.OnCreateManager(capacity);
+            // create the system
+            World.Active.CreateManager<NavAgentSystem>();
+            agent = Getmanager().CreateArchetype(
+                typeof(NavAgent),
+                // optional avoidance
+                // typeof(NavAgentAvoidance),
                 // optional
                 // typeof (Position),
                 // typeof (Rotation),
@@ -77,13 +81,13 @@ namespace Demo
                 // typeof (SyncRotationToNavAgent),
                 // typeof (SyncPositionFromNavAgent),
                 // typeof (SyncRotationFromNavAgent),
-                typeof (TransformMatrix)
+                typeof(TransformMatrix)
             );
         }
 
         [Inject] private BuildingCacheSystem buildings;
         [Inject] private InjectData data;
-        protected override void OnUpdate ()
+        protected override void OnUpdate()
         {
             if (Time.time > _nextUpdate && _lastSpawned != spawned)
             {
@@ -92,7 +96,7 @@ namespace Demo
                 SpawnedText.text = $"Spawned: {spawned} people";
             }
 
-            if (Getspawner ().Renderers.Length == 0)
+            if (Getspawner().Renderers.Length == 0)
             {
                 return;
             }
@@ -106,26 +110,28 @@ namespace Demo
             pendingSpawn = spawnData.Quantity;
             spawnData.Quantity = 0;
             data.Spawn[0] = spawnData;
-            var manager = Getmanager ();
+            var manager = Getmanager();
             for (var i = 0; i < pendingSpawn; i++)
             {
                 spawned++;
-                var position = buildings.GetResidentialBuilding ();
-                var entity = manager.CreateEntity (agent);
-                var navAgent = new NavAgent (
+                var position = buildings.GetResidentialBuilding();
+                var entity = manager.CreateEntity(agent);
+                var navAgent = new NavAgent(
                     position,
                     Quaternion.identity,
                     spawnData.AgentStoppingDistance,
                     spawnData.AgentMoveSpeed,
                     spawnData.AgentAcceleration,
                     spawnData.AgentRotationSpeed,
-                    spawnData.AgentAreaMask,
-                    spawnData.AgentAvoidanceDiameter
+                    spawnData.AgentAreaMask
                 );
                 // optional if set on the archetype
                 // manager.SetComponentData (entity, new Position { Value = position });
-                manager.SetComponentData (entity, navAgent);
-                manager.AddSharedComponentData (entity, Getspawner ().Renderers[Random.Range (0, Getspawner ().Renderers.Length)].Value);
+                manager.SetComponentData(entity, navAgent);
+                // optional for avoidance
+                // var navAvoidance = new NavAgentAvoidance(2f);
+                // manager.SetComponentData(entity, navAvoidance);
+                manager.AddSharedComponentData(entity, Getspawner().Renderers[Random.Range(0, Getspawner().Renderers.Length)].Value);
             }
             return;
         }
@@ -154,7 +160,7 @@ namespace Demo
             {
                 if (awaitingNavmeshText == null)
                 {
-                    awaitingNavmeshText = GameObject.Find ("AwaitingNavmeshText").GetComponent<Text> ();
+                    awaitingNavmeshText = GameObject.Find("AwaitingNavmeshText").GetComponent<Text>();
                 }
 
                 return awaitingNavmeshText;
@@ -169,7 +175,7 @@ namespace Demo
             {
                 if (cachedPathText == null)
                 {
-                    cachedPathText = GameObject.Find ("CachedPathText").GetComponent<Text> ();
+                    cachedPathText = GameObject.Find("CachedPathText").GetComponent<Text>();
                 }
 
                 return cachedPathText;
@@ -178,7 +184,7 @@ namespace Demo
 
         private float _nextUpdate;
 
-        private NativeQueue<AgentData> needsPath = new NativeQueue<AgentData> (Allocator.Persistent);
+        private NativeQueue<AgentData> needsPath = new NativeQueue<AgentData>(Allocator.Persistent);
 
         [BurstCompile]
         private struct DetectIdleAgentJob : IJobParallelFor
@@ -186,12 +192,12 @@ namespace Demo
             public InjectData data;
             public NativeQueue<AgentData>.Concurrent needsPath;
 
-            public void Execute (int index)
+            public void Execute(int index)
             {
                 var agent = data.Agents[index];
                 if (data.Agents[index].status == AgentStatus.Idle)
                 {
-                    needsPath.Enqueue (new AgentData { index = index, agent = agent, entity = data.Entities[index] });
+                    needsPath.Enqueue(new AgentData { index = index, agent = agent, entity = data.Entities[index] });
                     agent.status = AgentStatus.PathQueued;
                     data.Agents[index] = agent;
                 }
@@ -202,12 +208,12 @@ namespace Demo
         {
             public InjectData data;
             public NativeQueue<AgentData> needsPath;
-            public void Execute ()
+            public void Execute()
             {
-                while (needsPath.TryDequeue (out AgentData item))
+                while (needsPath.TryDequeue(out AgentData item))
                 {
-                    var destination = BuildingCacheSystem.GetCommercialBuilding ();
-                    NavAgentSystem.SetDestinationStatic (item.entity, item.agent, destination, item.agent.areaMask);
+                    var destination = BuildingCacheSystem.GetCommercialBuilding();
+                    NavAgentSystem.SetDestinationStatic(item.entity, item.agent, destination, item.agent.areaMask);
                 }
             }
         }
@@ -222,7 +228,7 @@ namespace Demo
         [Inject] InjectData data;
         [Inject] NavMeshQuerySystem navQuery;
 
-        protected override void OnUpdate ()
+        protected override void OnUpdate()
         {
             if (Time.time > _nextUpdate)
             {
@@ -230,27 +236,27 @@ namespace Demo
                 CachedPathText.text = $"Cached Paths: {navQuery.CachedCount}";
                 _nextUpdate = Time.time + 0.5f;
             }
-            var inputDeps = new DetectIdleAgentJob { data = data, needsPath = needsPath }.Schedule (data.Length, 64);
-            inputDeps = new SetNextPathJob { data = data, needsPath = needsPath }.Schedule (inputDeps);
-            inputDeps.Complete ();
+            var inputDeps = new DetectIdleAgentJob { data = data, needsPath = needsPath }.Schedule(data.Length, 64);
+            inputDeps = new SetNextPathJob { data = data, needsPath = needsPath }.Schedule(inputDeps);
+            inputDeps.Complete();
         }
 
-        protected override void OnDestroyManager ()
+        protected override void OnDestroyManager()
         {
-            needsPath.Dispose ();
+            needsPath.Dispose();
         }
     }
 
     public class BuildingCacheSystem : ComponentSystem
     {
-        public NativeList<Vector3> CommercialBuildings = new NativeList<Vector3> (Allocator.Persistent);
-        public NativeList<Vector3> ResidentialBuildings = new NativeList<Vector3> (Allocator.Persistent);
+        public NativeList<Vector3> CommercialBuildings = new NativeList<Vector3>(Allocator.Persistent);
+        public NativeList<Vector3> ResidentialBuildings = new NativeList<Vector3>(Allocator.Persistent);
         private PopulationSpawner spawner;
         private int nextCommercial = 0;
         private int nextResidential = 0;
         private static BuildingCacheSystem instance;
 
-        protected override void OnCreateManager (int capacity)
+        protected override void OnCreateManager(int capacity)
         {
             instance = this;
         }
@@ -269,14 +275,14 @@ namespace Demo
             {
                 if (spawner == null)
                 {
-                    spawner = Object.FindObjectOfType<PopulationSpawner> ();
+                    spawner = Object.FindObjectOfType<PopulationSpawner>();
                 }
 
                 return spawner;
             }
         }
 
-        public Vector3 GetResidentialBuilding ()
+        public Vector3 GetResidentialBuilding()
         {
             nextResidential++;
             if (nextResidential >= ResidentialBuildings.Length)
@@ -287,7 +293,7 @@ namespace Demo
             return ResidentialBuildings[nextResidential];
         }
 
-        public static Vector3 GetCommercialBuilding ()
+        public static Vector3 GetCommercialBuilding()
         {
             var building = instance.CommercialBuildings[0];
             try
@@ -309,28 +315,28 @@ namespace Demo
             }
         }
 
-        protected override void OnUpdate ()
+        protected override void OnUpdate()
         {
             for (var i = 0; i < data.Length; i++)
             {
                 var building = data.Buildings[i];
                 if (building.Type == BuildingType.Residential)
                 {
-                    ResidentialBuildings.Add (building.Position);
+                    ResidentialBuildings.Add(building.Position);
                 }
                 else
                 {
-                    CommercialBuildings.Add (building.Position);
+                    CommercialBuildings.Add(building.Position);
                 }
 
-                PostUpdateCommands.RemoveComponent<BuildingData> (building.Entity);
+                PostUpdateCommands.RemoveComponent<BuildingData>(building.Entity);
             }
         }
 
-        protected override void OnDestroyManager ()
+        protected override void OnDestroyManager()
         {
-            ResidentialBuildings.Dispose ();
-            CommercialBuildings.Dispose ();
+            ResidentialBuildings.Dispose();
+            CommercialBuildings.Dispose();
         }
     }
 }

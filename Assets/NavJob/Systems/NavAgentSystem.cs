@@ -31,9 +31,9 @@ namespace NavJob.Systems
             public NavAgent agent;
         }
 
-        private NativeQueue<AgentData> needsWaypoint = new NativeQueue<AgentData> (Allocator.Persistent);
+        private NativeQueue<AgentData> needsWaypoint;
         private ConcurrentDictionary<int, Vector3[]> waypoints = new ConcurrentDictionary<int, Vector3[]> ();
-        private NativeHashMap<int, AgentData> pathFindingData = new NativeHashMap<int, AgentData> (0, Allocator.Persistent);
+        private NativeHashMap<int, AgentData> pathFindingData;
 
         [BurstCompile]
         private struct DetectNextWaypointJob : IJobParallelFor
@@ -127,14 +127,15 @@ namespace NavJob.Systems
                     agent.remainingDistance = heading.magnitude;
                     if (agent.remainingDistance > 0.001f)
                     {
-                        var targetRotation = Quaternion.LookRotation (heading, up);
+                        var targetRotation = Quaternion.LookRotation (heading, up).eulerAngles;
+                        targetRotation.x = targetRotation.z = 0;
                         if (agent.remainingDistance < 1)
                         {
-                            agent.rotation = targetRotation;
+                            agent.rotation = Quaternion.Euler (targetRotation);
                         }
                         else
                         {
-                            agent.rotation = Quaternion.Slerp (agent.rotation, targetRotation, dt * agent.rotationSpeed);
+                            agent.rotation = Quaternion.Slerp (agent.rotation, Quaternion.Euler (targetRotation), dt * agent.rotationSpeed);
                         }
                     }
                     var forward = math.forward (agent.rotation) * agent.currentMoveSpeed * dt;
@@ -152,7 +153,7 @@ namespace NavJob.Systems
 
         private struct InjectData
         {
-            public int Length;
+            public readonly int Length;
             [ReadOnly] public EntityArray Entities;
             public ComponentDataArray<NavAgent> Agents;
         }
@@ -207,11 +208,10 @@ namespace NavJob.Systems
         protected override void OnCreateManager (int capacity)
         {
             instance = this;
-            querySystem.UseCache = true;
-            querySystem.MaxQueries = 256;
-            querySystem.MaxPathSize = 16000;
             querySystem.RegisterPathResolvedCallback (OnPathSuccess);
             querySystem.RegisterPathFailedCallback (OnPathError);
+            needsWaypoint = new NativeQueue<AgentData> (Allocator.Persistent);
+            pathFindingData = new NativeHashMap<int, AgentData> (0, Allocator.Persistent);
         }
 
         protected override void OnDestroyManager ()
