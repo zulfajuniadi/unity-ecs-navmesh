@@ -19,6 +19,7 @@ namespace NavJob.Systems
         FailedToResolve,
     }
 
+    [DisableAutoCreation]
     public class NavMeshQuerySystem : JobComponentSystem
     {
 

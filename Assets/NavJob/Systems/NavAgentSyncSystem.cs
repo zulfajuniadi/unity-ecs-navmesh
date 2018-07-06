@@ -12,6 +12,7 @@ namespace NavJob.Systems
     /// Syncs the transform matrix from the nav agent to a TransformMatrix component
     /// </summary>
     [UpdateAfter (typeof (NavAgentSystem))]
+    [DisableAutoCreation]
     public class NavAgentToTransfomMatrixSyncSystem : JobComponentSystem
     {
 
@@ -35,6 +36,7 @@ namespace NavJob.Systems
     /// Sets the NavAgent position to the Position component
     /// </summary>
     [UpdateBefore (typeof (NavAgentSystem))]
+    [DisableAutoCreation]
     public class NavAgentFromPositionSyncSystem : JobComponentSystem
     {
         [BurstCompile]
@@ -57,6 +59,7 @@ namespace NavJob.Systems
     /// Sets the Position component to the NavAgent position
     /// </summary>
     [UpdateAfter (typeof (NavAgentSystem))]
+    [DisableAutoCreation]
     public class NavAgentToPositionSyncSystem : JobComponentSystem
     {
         [BurstCompile]
@@ -79,6 +82,7 @@ namespace NavJob.Systems
     /// Sets the NavAgent rotation to the Rotation component
     /// </summary>
     [UpdateBefore (typeof (NavAgentSystem))]
+    [DisableAutoCreation]
     public class NavAgentFromRotationSyncSystem : JobComponentSystem
     {
         [BurstCompile]
@@ -101,6 +105,7 @@ namespace NavJob.Systems
     /// Sets the Rotation component to the NavAgent rotation
     /// </summary>
     [UpdateAfter (typeof (NavAgentSystem))]
+    [DisableAutoCreation]
     public class NavAgentToRotationSyncSystem : JobComponentSystem
     {
         [BurstCompile]

@@ -20,6 +20,7 @@ namespace NavJob.Systems
     class PathSuccessBarrier : BarrierSystem { }
     class PathErrorBarrier : BarrierSystem { }
 
+    [DisableAutoCreation]
     public class NavAgentSystem : JobComponentSystem
     {
 
