@@ -50,6 +50,9 @@
         "Obj/": true,
         "ProjectSettings/": false,
         "temp/": true,
-        "Temp/": true
-    }
+        "Temp/": true,
+    },
+    "csharpfixformat.style.spaces.beforeParenthesis": true,
+    "csharpfixformat.style.newline.atEnd": false,
+    "csharpfixformat.sort.usings.order": "System UnityEngine Unity",
 }
