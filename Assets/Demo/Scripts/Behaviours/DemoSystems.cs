@@ -70,6 +70,7 @@ namespace Demo
             base.OnCreateManager (capacity);
             // create the system
             World.Active.CreateManager<NavAgentSystem> ();
+            World.Active.GetOrCreateManager<NavAgentToTransfomMatrixSyncSystem> ();
             agent = Getmanager ().CreateArchetype (
                 typeof (NavAgent),
                 // optional avoidance
@@ -138,7 +139,7 @@ namespace Demo
 
         private struct InjectData
         {
-            public int Length;
+            public readonly int Length;
             public ComponentDataArray<PendingSpawn> Spawn;
         }
     }
@@ -220,7 +221,7 @@ namespace Demo
 
         private struct InjectData
         {
-            public int Length;
+            public readonly int Length;
             [ReadOnly] public EntityArray Entities;
             public ComponentDataArray<NavAgent> Agents;
         }
@@ -265,7 +266,7 @@ namespace Demo
 
         private struct InjectData
         {
-            public int Length;
+            public readonly int Length;
             [ReadOnly] public ComponentDataArray<BuildingData> Buildings;
         }
 
