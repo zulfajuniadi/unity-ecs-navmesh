@@ -10,12 +10,12 @@ namespace NavJob.Components
         public float radius;
         public float3 partition { get; set; }
 
-        public NavAgentAvoidance(
+        public NavAgentAvoidance (
             float radius = 1f
         )
         {
             this.radius = radius;
-            this.partition = new float3(0);
+            this.partition = new float3 (0);
         }
     }
 

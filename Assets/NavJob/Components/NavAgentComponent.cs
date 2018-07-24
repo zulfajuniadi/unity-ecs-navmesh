@@ -1,6 +1,6 @@
+using UnityEngine;
 using Unity.Entities;
 using Unity.Mathematics;
-using UnityEngine;
 
 namespace NavJob.Components
 {

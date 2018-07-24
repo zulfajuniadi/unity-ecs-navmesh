@@ -1,10 +1,10 @@
-using NavJob.Components;
+using UnityEngine;
 using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
 using Unity.Jobs;
 using Unity.Transforms;
-using UnityEngine;
+using NavJob.Components;
 
 namespace NavJob.Systems
 {

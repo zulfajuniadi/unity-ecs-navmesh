@@ -1,9 +1,9 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
-using NavJob.Systems;
-using Town;
 using UnityEngine;
 using UnityEngine.AI;
+using NavJob.Systems;
+using Town;
 
 namespace Demo.Behaviours
 {

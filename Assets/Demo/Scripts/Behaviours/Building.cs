@@ -1,9 +1,9 @@
 ﻿#region
 
-using Demo;
-using Unity.Entities;
 using UnityEngine;
 using UnityEngine.AI;
+using Unity.Entities;
+using Demo;
 
 #endregion
 

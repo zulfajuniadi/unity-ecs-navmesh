@@ -1,8 +1,8 @@
 using System.Collections;
+using UnityEngine;
 using Unity.Entities;
 using Unity.Mathematics;
 using Unity.Rendering;
-using UnityEngine;
 
 namespace Demo.Behaviours
 {

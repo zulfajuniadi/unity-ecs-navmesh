@@ -1,6 +1,6 @@
-﻿using Demo.Behaviours;
-using Unity.Entities;
+﻿using Unity.Entities;
 using Unity.Mathematics;
+using Demo.Behaviours;
 
 namespace Demo
 {
